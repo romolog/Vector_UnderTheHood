@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/myvec_tests.dir/MyVector_test.cpp.o -o myvec_tests  lib/libgtest.a lib/libgtest_main.a lib/libgtest.a 
