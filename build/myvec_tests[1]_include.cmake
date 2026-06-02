@@ -1,0 +1,5 @@
+if(EXISTS "/home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/myvec_tests[1]_tests.cmake")
+  include("/home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/myvec_tests[1]_tests.cmake")
+else()
+  add_test(myvec_tests_NOT_BUILT myvec_tests_NOT_BUILT)
+endif()

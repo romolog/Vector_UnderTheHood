@@ -1,0 +1,165 @@
+Start testing: Jun 02 00:23 EDT
+----------------------------------------------------------
+1/6 Testing: EmptyVector.DefaultCtor_Int
+1/6 Test: EmptyVector.DefaultCtor_Int
+Command: "/home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/myvec_tests" "--gtest_filter=EmptyVector.DefaultCtor_Int" "--gtest_also_run_disabled_tests"
+Directory: /home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build
+"EmptyVector.DefaultCtor_Int" start time: Jun 02 00:23 EDT
+Output:
+----------------------------------------------------------
+Running main() from /home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/_deps/gtest_pack-src/googletest/src/gtest_main.cc
+Note: Google Test filter = EmptyVector.DefaultCtor_Int
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from EmptyVector
+[ RUN      ] EmptyVector.DefaultCtor_Int
+[       OK ] EmptyVector.DefaultCtor_Int (0 ms)
+[----------] 1 test from EmptyVector (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"EmptyVector.DefaultCtor_Int" end time: Jun 02 00:23 EDT
+"EmptyVector.DefaultCtor_Int" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/6 Testing: EmptyVector.DefaultCtor_ThrowClass
+2/6 Test: EmptyVector.DefaultCtor_ThrowClass
+Command: "/home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/myvec_tests" "--gtest_filter=EmptyVector.DefaultCtor_ThrowClass" "--gtest_also_run_disabled_tests"
+Directory: /home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build
+"EmptyVector.DefaultCtor_ThrowClass" start time: Jun 02 00:23 EDT
+Output:
+----------------------------------------------------------
+Running main() from /home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/_deps/gtest_pack-src/googletest/src/gtest_main.cc
+Note: Google Test filter = EmptyVector.DefaultCtor_ThrowClass
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from EmptyVector
+[ RUN      ] EmptyVector.DefaultCtor_ThrowClass
+[       OK ] EmptyVector.DefaultCtor_ThrowClass (0 ms)
+[----------] 1 test from EmptyVector (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"EmptyVector.DefaultCtor_ThrowClass" end time: Jun 02 00:23 EDT
+"EmptyVector.DefaultCtor_ThrowClass" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/6 Testing: EmptyVector.DefaultCtor_Bool
+3/6 Test: EmptyVector.DefaultCtor_Bool
+Command: "/home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/myvec_tests" "--gtest_filter=EmptyVector.DefaultCtor_Bool" "--gtest_also_run_disabled_tests"
+Directory: /home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build
+"EmptyVector.DefaultCtor_Bool" start time: Jun 02 00:23 EDT
+Output:
+----------------------------------------------------------
+Running main() from /home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/_deps/gtest_pack-src/googletest/src/gtest_main.cc
+Note: Google Test filter = EmptyVector.DefaultCtor_Bool
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from EmptyVector
+[ RUN      ] EmptyVector.DefaultCtor_Bool
+[       OK ] EmptyVector.DefaultCtor_Bool (0 ms)
+[----------] 1 test from EmptyVector (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"EmptyVector.DefaultCtor_Bool" end time: Jun 02 00:23 EDT
+"EmptyVector.DefaultCtor_Bool" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/6 Testing: Vector42.SizeCtor_Int
+4/6 Test: Vector42.SizeCtor_Int
+Command: "/home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/myvec_tests" "--gtest_filter=Vector42.SizeCtor_Int" "--gtest_also_run_disabled_tests"
+Directory: /home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build
+"Vector42.SizeCtor_Int" start time: Jun 02 00:23 EDT
+Output:
+----------------------------------------------------------
+Running main() from /home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/_deps/gtest_pack-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Vector42.SizeCtor_Int
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Vector42
+[ RUN      ] Vector42.SizeCtor_Int
+[       OK ] Vector42.SizeCtor_Int (0 ms)
+[----------] 1 test from Vector42 (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"Vector42.SizeCtor_Int" end time: Jun 02 00:23 EDT
+"Vector42.SizeCtor_Int" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/6 Testing: Iter.Int
+5/6 Test: Iter.Int
+Command: "/home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/myvec_tests" "--gtest_filter=Iter.Int" "--gtest_also_run_disabled_tests"
+Directory: /home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build
+"Iter.Int" start time: Jun 02 00:23 EDT
+Output:
+----------------------------------------------------------
+Running main() from /home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/_deps/gtest_pack-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Iter.Int
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Iter
+[ RUN      ] Iter.Int
+[       OK ] Iter.Int (0 ms)
+[----------] 1 test from Iter (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"Iter.Int" end time: Jun 02 00:23 EDT
+"Iter.Int" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/6 Testing: InitList.Int
+6/6 Test: InitList.Int
+Command: "/home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/myvec_tests" "--gtest_filter=InitList.Int" "--gtest_also_run_disabled_tests"
+Directory: /home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build
+"InitList.Int" start time: Jun 02 00:23 EDT
+Output:
+----------------------------------------------------------
+Running main() from /home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/_deps/gtest_pack-src/googletest/src/gtest_main.cc
+Note: Google Test filter = InitList.Int
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from InitList
+[ RUN      ] InitList.Int
+[       OK ] InitList.Int (0 ms)
+[----------] 1 test from InitList (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"InitList.Int" end time: Jun 02 00:23 EDT
+"InitList.Int" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Jun 02 00:23 EDT

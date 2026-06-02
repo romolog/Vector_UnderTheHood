@@ -1,0 +1,7 @@
+# This is a generated file and its contents are an internal implementation detail.
+# The patch step will be re-executed if anything in this file changes.
+# No other meaning or use of this file is supported.
+
+command (connected)=/usr/bin/cmake;-Dcan_fetch=YES;-P;/home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/_deps/gtest_pack-subbuild/gtest_pack-populate-prefix/tmp/gtest_pack-populate-gitupdate.cmake
+command (disconnected)=/usr/bin/cmake;-Dcan_fetch=NO;-P;/home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/_deps/gtest_pack-subbuild/gtest_pack-populate-prefix/tmp/gtest_pack-populate-gitupdate.cmake
+work_dir=/home/romolog/Documents/CPP/00_Portfolio/Portfolio_Vector_UnderTheHood/build/_deps/gtest_pack-src
