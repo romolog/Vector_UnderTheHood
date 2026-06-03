@@ -1,3 +1,5 @@
 tools/
 snapshots/
 build/
+myvec
+main.cpp

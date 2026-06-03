@@ -228,33 +228,18 @@ TEST(Iter, Int) {
 // Init List //-----------------------------------------------------------------
 
 TEST(InitList, Int) {
-	myvec::MyVector<int> v{24, 42, 4224};
+	myvec::MyVector<int> v{24, 42, 4224}; 
 	EXPECT_EQ(v.size(), 3);
 	EXPECT_GE(v.capacity(), 3); 
 	EXPECT_FALSE(v.empty())	;
 }
 
+// Const Iter //-----------------------------------------------------------------
 
-// TEST(MyVecTest, DefaultCtorCreatesEmptyVectorBool) {
-// 	myvec::MyVector<bool> v;
-// 	EXPECT_EQ(v.size(), 0);
-// 	EXPECT_EQ(v.capacity(), 0);
-// 	EXPECT_NE(v.data(), nullptr); // ASSERT_NE(ptr, nullptr) = stop if fail
-// 	EXPECT_TRUE(v.empty());
-// }
+TEST(ConstIter, Int) {
+	myvec::MyVector<int> v{24, 42, 43, 4224, 73};
+	auto cit = v.cbegin();
+	EXPECT_EQ(*cit, v[0]);
 
+}
 
-
-// TEST(MyVecTest, PushBack) {
-//     myvec::MyVector<int> v;
-//     v.push_back(1);
-//     EXPECT_EQ(v.size(), 1);
-// }
-
-
-// int main(void)
-// {
-// 	myvec::MyVector<int> a;
-
-// 	return 0;
-// }
