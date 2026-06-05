@@ -1,6 +1,11 @@
 #pragma once
 #include "MyVector.hpp"
+
+#include <concepts>
 #include <iostream>
+#include <iterator>
+#include <type_traits>
+
 
 namespace myvec
 {
@@ -10,8 +15,10 @@ namespace myvec
 	template <typename T, typename Pointer = T*, typename Reference = T&>
 	class MyIterator final
 	{
+		// friend MyVector;
+
 		private:
-			T* dataPtr_ = nullptr;
+			Pointer dataPtr_ = nullptr;
 
 		public:
 			using value_type 		= T;
@@ -22,7 +29,7 @@ namespace myvec
 			using iterator_concept 	= std::contiguous_iterator_tag;
 
 			MyIterator() noexcept = default;
-			MyIterator(T* ptr) noexcept : dataPtr_(ptr) {}
+			MyIterator(Pointer ptr) noexcept : dataPtr_(ptr) {}
 
 			MyIterator(MyIterator&& move) = default;
 			MyIterator& operator=(MyIterator&& move) = default;	
@@ -30,6 +37,11 @@ namespace myvec
 			MyIterator(const MyIterator& copy) = default;
 			MyIterator& operator=(const MyIterator& copy) = default;
 
+			// int x = 10;
+			// int& r = x;
+			// auto a = r;            // int
+			// decltype(auto) b = r;  // int&
+			// decltype(auto) operator*() const
 			reference 			operator*	() const noexcept { return *dataPtr_;}
 			reference			operator[]	(difference_type idx) const noexcept { return *(dataPtr_ + idx);}
 
@@ -72,10 +84,7 @@ namespace myvec
 			MyIterator	operator+(difference_type shift, MyIterator it) noexcept { return (it += shift);}
 
 			MyIterator&			operator-=	(const difference_type shift) noexcept 
-			{	
-				dataPtr_ -= shift;
-				return *this;
-			}
+			{ *this += -shift; return *this; }
 
 			MyIterator			operator-	(const difference_type shift) noexcept
 			{	
@@ -87,6 +96,160 @@ namespace myvec
 			difference_type 	operator-	(const MyIterator& rhs) noexcept { return (dataPtr_ - rhs.dataPtr_); }
 
 	};
+
+
+	// old technique
+	//		could be replaced: std::bidirectional_iterator<Iter>;
+	template <class Iter>
+	concept Reversible = 	std::is_base_of_v<	std::bidirectional_iterator_tag, 
+												typename std::iterator_traits<Iter>::iterator_category>;
+
+	template <class Iter>
+	concept Bidirect = 	std::bidirectional_iterator<Iter> 
+					&& !std::random_access_iterator<Iter>;
+
+	template <class Iter>
+	concept RandomAccess = std::random_access_iterator<Iter>;
+
+
+	template <class Iterator>
+		requires Reversible<Iterator>
+	class MyReverseIterator
+	{
+		private:
+			Iterator current_;
+
+		public:
+			using value_type 		= Iterator::value_type;
+			using difference_type	= Iterator::difference_type;
+			using pointer 			= Iterator::pointer;
+			using reference 		= Iterator::reference;
+			using iterator_category = Iterator::iterator_category;
+			using iterator_concept 	= Iterator::iterator_concept;
+
+			MyReverseIterator() noexcept = default;
+			MyReverseIterator(Iterator& it) noexcept : current_(it) {}
+
+			MyReverseIterator(MyReverseIterator&& move) = default;
+			MyReverseIterator& operator=(MyReverseIterator&& move) = default;	
+
+			MyReverseIterator(const MyReverseIterator& copy) = default;
+			MyReverseIterator& operator=(const MyReverseIterator& copy) = default;
+
+			Iterator base() const { return current_;}
+
+
+			reference		operator*	() 
+				const 
+				noexcept
+				requires RandomAccess<Iterator>  
+			{ return *(current_ - 1); }
+
+			reference 		operator*	() 
+				const
+				noexcept
+				requires Bidirect<Iterator>
+			{
+				Iterator tmp{current_};
+				--tmp;
+				return *tmp;
+			}
+
+
+			reference		operator[]	(difference_type idx) 
+				const 
+				noexcept 
+				requires RandomAccess<Iterator>  
+			{ return *(current_ - 1 - idx); }
+
+			reference		operator[]	(difference_type idx) 
+				const 
+				noexcept 
+				requires Bidirect<Iterator>
+			{ 
+				Iterator tmp{current_};
+				if (idx > 0)
+					for (difference_type i = 0; i < idx; ++i)
+						--tmp;
+				else
+					for (difference_type i = 0; i > idx; --i)
+						++tmp;
+				return *tmp;
+			}
+
+
+			MyReverseIterator&	operator++	() noexcept { --current_; return *this; }
+
+			MyReverseIterator	operator++	(int) noexcept 
+			{
+				MyReverseIterator prev(*this);
+				--current_;
+				return prev;
+			}
+
+			MyReverseIterator&	operator--	() noexcept { ++current_; return *this; }
+
+			MyReverseIterator	operator--	(int) noexcept 
+			{ 
+				MyReverseIterator prev(*this);
+				++current_;
+				return prev; 
+			}
+
+			auto operator<=>(const MyReverseIterator& second) const noexcept = default; 
+
+			MyReverseIterator&	operator+=	(const difference_type shift) 
+				noexcept 
+				requires RandomAccess<Iterator>
+			{ current_ -= shift; return *this; }
+
+			MyReverseIterator&	operator+=	(const difference_type shift) 
+				noexcept 
+				requires Bidirect<Iterator>
+			{ 
+			
+				Iterator tmp{current_};
+				if (shift > 0)
+					for (difference_type i = 0; i < shift; ++i)
+						--tmp;
+				else
+					for (difference_type i = 0; i > shift; --i)
+						++tmp; 
+				return *this; 
+			}
+
+			MyReverseIterator	operator+	(const difference_type shift) noexcept
+			{	
+				MyReverseIterator res(*this);
+				res += shift;
+				return res;
+			}
+
+			friend 
+			MyReverseIterator	operator+(difference_type shift, MyReverseIterator rit) noexcept 
+			{ return (rit += shift);}
+
+			MyReverseIterator&	operator-=	(const difference_type shift) noexcept 
+			{ (*this) += -shift; return *this; }
+
+			MyReverseIterator	operator-	(const difference_type shift) noexcept
+			{	
+				MyReverseIterator res(*this);
+				res -= shift;
+				return res;
+			}
+			
+			difference_type 	operator-	(const MyReverseIterator& rhs) noexcept 
+			{ return (current_ - rhs.current_); }
+
+	};
+
+	
+
+
+} // namespace myvec
+
+
 
 	// template <typename T>
 	// class MyConstIterator final
@@ -164,69 +327,107 @@ namespace myvec
 	// };
 
 
-template<class T>
-concept Decrementable = requires(T t) {
-    --t;
-};
+	// template<>
+	// class MyReverseIterator<Reversible Iterator>
+	// {
+	// 	private:
+	// 		Iterator current_;
 
-	template<class Iterator>
-	requires requires(Iterator t) {--t;}
-	class MyReverseIterator final
-	{
-		private:
-			Iterator current_;
+	// 	public:
+	// 		using value_type 		= Iterator::value_type;
+	// 		using difference_type	= Iterator::difference_type;
+	// 		using pointer 			= Iterator::pointer;
+	// 		using reference 		= Iterator::reference;
+	// 		using iterator_category = Iterator::iterator_category;
+	// 		using iterator_concept 	= Iterator::iterator_concept;
 
-		public:
-			using value_type 		= Iterator::value_type;
-			using difference_type	= Iterator::difference_type;
-			using pointer 			= Iterator::pointer;
-			using reference 		= Iterator::reference;
-			using iterator_category = Iterator::iterator_category;
-			using iterator_concept 	= Iterator::iterator_concept;
+	// 		MyReverseIterator() noexcept = default;
+	// 		MyReverseIterator(const Iterator& it) noexcept : current_(it) {}
 
+	// 		MyReverseIterator(MyReverseIterator&& move) = default;
+	// 		MyReverseIterator& operator=(MyReverseIterator&& move) = default;	
 
-			MyReverseIterator() = default;
+	// 		MyReverseIterator(const MyReverseIterator& copy) = default;
+	// 		MyReverseIterator& operator=(const MyReverseIterator& copy) = default;
 
-			MyReverseIterator(Iterator& it): current_(it) {}
+	// 		Iterator base() const { return current_;}
 
-			Iterator base() const { return current_;}
+	// 		reference 			operator*	() const noexcept 
+	// 		{ 
+	// 			//	for MyVector
+	// 			//		no template, just use MyVectorIterator current_;
+	// 			//		then *reverse_iterator: return *(current - 1);
+	// 			//	but generally bidirectional iter may not support 'iter - ptrdiff_t'
+	// 			Iterator tmp{current_};
+	// 			--tmp;
+	// 			return *tmp;
+	// 		}
+			
+	// 		reference			operator[]	(difference_type idx) const noexcept 
+	// 		{ 
+	// 			Iterator tmp{current_};
+	// 			if (idx > 0)
+	// 				for (difference_type i = 0; i < idx; ++i)
+	// 					--tmp;
+	// 			else
+	// 				for (difference_type i = 0; i > idx; --i)
+	// 					++tmp;
+	// 			return *tmp;
+	// 		}
 
+	// 		MyReverseIterator&	operator++	() noexcept { --current_; return *this; }
 
-			// int x = 10;
-			// int& r = x;
-			// auto a = r;            // int
-			// decltype(auto) b = r;  // int&
-			// decltype(auto) operator*() const
+	// 		MyReverseIterator	operator++	(int) noexcept 
+	// 		{
+	// 			MyReverseIterator prev(*this);
+	// 			--current_;
+	// 			return prev;
+	// 		}
 
-			reference operator*() const
-			{
-				MyIterator tmp = current_;
-				--tmp;
-				return *tmp;
-			}
-	};
+	// 		MyReverseIterator&	operator--	() noexcept { ++current_; return *this; }
 
-	// template<class MyIterator>
-	// class reverse_iterator {
-	// private:
-	// 	Iterator current;
+	// 		MyReverseIterator	operator--	(int) noexcept 
+	// 		{ 
+	// 			MyReverseIterator prev(*this);
+	// 			++current_;
+	// 			return prev; 
+	// 		}
 
-	// public:
-	// 	reverse_iterator() = default;
+	// 		auto operator<=>(const MyReverseIterator& second) const noexcept = default; 
 
-	// 	explicit reverse_iterator(Iterator it)
-	// 		: current(it)
-	// 	{}
+	// 		MyReverseIterator&	operator+=	(const difference_type shift) noexcept 
+	// 		{	
+	// 			Iterator tmp{current_};
+	// 			if (shift > 0)
+	// 				for (difference_type i = 0; i < shift; ++i)
+	// 					--tmp;
+	// 			else
+	// 				for (difference_type i = 0; i > shift; --i)
+	// 					++tmp; 
+	// 			return *this; 
+	// 		}
 
-	// 	Iterator base() const {
-	// 		return current;
-	// 	}
+	// 		MyReverseIterator	operator+	(const difference_type shift) noexcept
+	// 		{	
+	// 			MyReverseIterator res(*this);
+	// 			res += shift;
+	// 			return res;
+	// 		}
 
-	// 	decltype(auto) operator*() const
-	// 	{
-	// 		Iterator tmp = current;
-	// 		--tmp;
-	// 		return *tmp;
-	// 	}
+	// 		friend 
+	// 		MyReverseIterator	operator+(difference_type shift, MyReverseIterator rit) noexcept 
+	// 		{ return (rit += shift);}
+
+	// 		MyReverseIterator&	operator-=	(const difference_type shift) noexcept 
+	// 		{ *this += -shift; return *this; }
+
+	// 		MyReverseIterator	operator-	(const difference_type shift) noexcept
+	// 		{	
+	// 			MyReverseIterator res(*this);
+	// 			res -= shift;
+	// 			return res;
+	// 		}
+			
+	// 		difference_type 	operator-	(const MyReverseIterator& rhs) noexcept 
+	// 		{ return (current_ - rhs.current_); }
 	// };
-}

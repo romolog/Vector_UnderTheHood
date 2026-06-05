@@ -41,7 +41,7 @@ namespace myvec
 		StorageRAII storage_;
 
 
-	public:
+		public:
 
 		//	nested: noexcept(Allocator()) = BOOL (True or False);
 		//	outer: 	noexcept (True) = noexcept
@@ -203,7 +203,7 @@ namespace myvec
 				//
 				//	manual approach is better than uninit_copy for exception safety
 				//	size_ is catched properly to call Dtor of StorageRAII:
-				for(; storage_.size_ < copy.storage_.size_; ++storage_.size_)
+				for (; storage_.size_ < copy.storage_.size_; ++storage_.size_)
 					new(storage_.data_ + storage_.size_) T(copy.storage_.data_[storage_.size_]);
 			}
 		}
@@ -252,8 +252,8 @@ namespace myvec
 
 		using iterator = MyIterator<T, T*, T&>;
 		using const_iterator = MyIterator<T, const T*, const T&>;
-		using reverse_iterator = MyReverseIterator<T, const T*, const T&>;
-		// using const_iterator = MyIterator<T, const T*, const T&>;
+		using reverse_iterator = MyReverseIterator<iterator>;
+		using const_reverse_iterator = MyIterator<const_iterator>;
 
 		iterator begin() noexcept { return iterator(storage_.data_); }
 		iterator end() noexcept { return iterator(storage_.data_ + storage_.size_); }
@@ -265,8 +265,8 @@ namespace myvec
 
 		const_iterator rbegin() const noexcept { return reverse_iterator(storage_.data_ + storage_.size_); }
 		const_iterator rend() const noexcept { return reverse_iterator(storage_.data_); }
-		// const_iterator crbegin() const noexcept { return const_iterator(storage_.data_); }
-		// const_iterator crend() const noexcept { return const_iterator(storage_.data_ + storage_.size_); }
+		const_iterator crbegin() const noexcept { return const_reverse_iterator(storage_.data_ + storage_.size_); }
+		const_iterator crend() const noexcept { return const_reverse_iterator(storage_.data_); }
 
 
 		T& operator[](size_t id) noexcept {return storage_.data_[id];}
@@ -292,9 +292,165 @@ namespace myvec
 			storage_.size_ = 0; 
 		};
 
-		bool	empty		(void)	const 	noexcept { return storage_.size_ == 0; };
+		bool	empty		(void)	const 	noexcept { return storage_.size_ == 0; }
+
+		template <class ... Args>
+		constexpr iterator emplace(const_iterator pos, Args&& ... args)
+		{
+			size_t idx_emplaced = std::distance(cbegin(), pos);
+			size_t temp_len = storage_.size_ + 1;
+
+			if (storage_.size_ == storage_.capacity_)
+			{
+				StorageRAII temp(temp_len);
+	
+				copy_or_move(temp, temp.size_, idx_emplaced);
+				
+				StorageRAII::AllocTraits::construct(	temp.alloc_, 
+														temp.data_ + idx_emplaced, 
+														std::forward<Args>(args) ... );
+				++temp.size_;
+				
+				copy_or_move(temp, temp.size_, temp_len);
+	
+				storage_ = std::move(temp);
+				
+				iterator res(storage_.data_ + idx_emplaced);
+				return res;
+			}
+			else if (pos == cend())
+			{
+				StorageRAII::AllocTraits::construct(	storage_.alloc_, 
+														storage_.data_ + storage_.size_, 
+														std::forward<Args>(args) ... );
+				++storage_.size_;
+			}
+			else
+			{
+				StorageRAII temp(1);
+				StorageRAII::AllocTraits::construct(	temp.alloc_, 
+														temp.data_, 
+														std::forward<Args>(args) ... );
+				copy_or_move_storage_right(idx_emplaced);
+				storage_.data_[idx_emplaced] = std::move(temp.data_[0]);
+			}
+		}
+
+		private:
+		void copy_or_move_storage_right (size_t idx)
+		{
+			size_t last = storage_.data_.size_;
+			if constexpr ( 		std::is_nothrow_move_constructible_v<T> 
+							&& !std::is_trivially_copyable_v<T>)
+			{
+				StorageRAII::AllocTraits::construct(	storage_.alloc_, 
+														storage_.data_ + last, 
+														std::move(storage_.data_[last - 1]) );
+				++storage_.size_;
+				for (; last > idx; --last)
+					// new (temp.data_ + idx) T(std::move(storage_.data_[idx]));
+					StorageRAII::AllocTraits::construct(	storage_.alloc_, 
+															storage_.data_ + last, 
+															std::move(storage_.data_[last - 1]) );
+				
+			}
+			else if 	( 	   !std::is_nothrow_move_constructible_v<T> 
+							&& !std::is_trivially_copyable_v<T>)
+				for (; last > idx; --last)
+					StorageRAII::AllocTraits::construct(	temp.alloc_, 
+															temp.data_ + last, 
+															storage_.data_[last - 1] );
+					// new (temp.data_ + idx) T(storage_.data_[idx]);
+			else
+			{
+				storage_.data_[last] = storage_.data_[last - 1];
+				++storage_.size_;
+				--last;
+				for (; last > idx; --last)
+					storage_.data_[last] = storage_.data_[last - 1];
+			}
+		} 
+
+
+
+		void copy_or_move (StorageRAII& temp, size_t& idx, size_t len)
+		{
+			if constexpr ( 		std::is_nothrow_move_constructible_v<T> 
+							&& !std::is_trivially_copyable_v<T>)
+				for ( ; idx < len; ++idx)
+					// new (temp.data_ + idx) T(std::move(storage_.data_[idx]));
+					StorageRAII::AllocTraits::construct(	temp.alloc_, 
+															temp.data_ + idx, 
+															std::move(storage_.data_[idx]) );
+			else if 	( 	   !std::is_nothrow_move_constructible_v<T> 
+							&& !std::is_trivially_copyable_v<T>)
+				for ( ; idx < len; ++idx)
+					StorageRAII::AllocTraits::construct(	temp.alloc_, 
+															temp.data_ + idx, 
+															storage_.data_[idx] );
+					// new (temp.data_ + idx) T(storage_.data_[idx]);
+			else
+				for ( ; idx < len; ++idx)
+					temp.data_ [idx] = storage_.data_[idx];
+		} 
+
+
+		private:
+		// template<class U>
+		// void push_back_impl(U&& value)
+		// {
+		//     ::new (data_ + size_) T(value);
+		// }
+		//	IMPORTANT: 
+		//		Even though value's type is U&&, the named variable value 
+		//		is always an lvalue expression inside the function.
+		//		so finally T(value) -> T(const U&) = copy 
+		template <class V>
+		constexpr void push_back_impl(V&& val)
+		{
+			if (storage_.size_ == storage_.capacity_)
+			{
+				StorageRAII temp(storage_.size_ * 2 + 1);
+				copy_or_move(temp, temp.size_, storage_.size_);
+				new (temp.data_ + temp.size_) T(std::forward<V>(val));
+				++temp.size_;
+				storage_ = std::move(temp);
+			}
+			else
+			{
+				new (storage_.data_ + storage_.size_) T(std::forward<V>(val));
+				++storage_.size_;
+			}
+		}
 		
-		void 	swap		(MyVector& rhs) { std::swap(storage_.data_, rhs.storage_.data_); };
+		public:
+
+		constexpr void push_back(const T& copy_val) { push_back_impl(copy_val); }
+
+		constexpr void push_back(T&& move_val)  { push_back_impl(move_val); }
+
+
+		constexpr void reserve(size_t new_cap)
+		{
+			if (new_cap <= storage_.capacity_)
+				return ;
+			StorageRAII temp(new_cap);
+			copy_or_move(temp, temp.size_, storage_.size_);
+			++temp.size_;
+			storage_ = std::move(temp);
+		}
+
+		void 	swap		(MyVector& rhs) noexcept
+		{ 
+			storage_ = std::move(rhs.storage_);
+			// no allocator propagation intentionally
+		}
+
+
+		// insert()
+		// back()
+		// pop_back()
+		// erase()
 
 	}; // end MyVector
 

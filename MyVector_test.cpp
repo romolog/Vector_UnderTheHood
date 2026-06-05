@@ -113,7 +113,7 @@ void TestEmptyVector(const Vec& t)
 
 TEST(EmptyVector, DefaultCtor_Int) 
 {	
-    
+    // GTEST_LOG_(INFO) << "\n\tCall default ctor, check if size = 0, empty = true\n";
 	myvec::MyVector<int> t;
 	TestEmptyVector(t);
 	t.clear();
@@ -179,10 +179,33 @@ TEST(Vector42, SizeCtor_Int)
 {
 	myvec::MyVector<int> t(42);
 	EXPECT_EQ(t.size(), 42);
-	EXPECT_GE(t.capacity(), 42); 
+	EXPECT_EQ(t.capacity(), 42); 
 	EXPECT_FALSE(t.empty())	;
 	t.clear();
 	TestEmptyVector(t);
+}
+
+// Reserve //-----------------------------------------------------------------
+
+TEST(EmptyVector_Int, Reserve) 
+{
+	myvec::MyVector<int> t;
+	EXPECT_EQ(t.capacity(), 0);
+	size_t n = 42;
+	t.reserve(n);
+	EXPECT_GE(t.capacity(), n); 
+}
+
+// Push back //-----------------------------------------------------------------
+
+TEST(EmptyVector_Int, PushBack) 
+{
+	myvec::MyVector<int> t;
+	EXPECT_EQ(t.capacity(), 0);
+	int val = 42;
+	t.push_back(val);
+	EXPECT_EQ(t.capacity(), 1);
+	EXPECT_EQ(t[0], val); 
 }
 
 // Iter //-----------------------------------------------------------------
