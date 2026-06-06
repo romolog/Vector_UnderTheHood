@@ -88,70 +88,78 @@ class ThrowClass
 // 	EXPECT_TRUE(t.empty());
 // };
 
+// GTEST_LOG_(INFO) << "\n\tCall default ctor, check if size = 0, empty = true\n";
+// EXPECT_NE(t.data(), nullptr); // ASSERT_NE(ptr, nullptr) = stop if fail
 template<class Vec>
-void TestMutableEmptyVector(Vec& t)
+void TestEmptyVector(Vec& t)
 {
-	// EXPECT_NE(t.data(), nullptr); // ASSERT_NE(ptr, nullptr) = stop if fail
-
 	EXPECT_EQ(t.size(), 0);
 	EXPECT_EQ(t.capacity(), 0);
 	EXPECT_TRUE(t.empty());
 	EXPECT_EQ(t.begin(), t.end());
 	EXPECT_EQ(t.cbegin(), t.cend());
-	// auto rit = t.rbegin();
-	// (void)rit;
 	EXPECT_EQ(t.rbegin(), t.rend());
 	EXPECT_EQ(t.crbegin(), t.crend());
 
-	// int count = 0;
-    // for (int x : t)
-    //     ++count;
-    // EXPECT_EQ(count, 0);
-
+	int count = 0;
+	for (int _ : t)
+		++count;
+	EXPECT_EQ(count, 0);
 };
 
-template<class Vec>
-void TestConstEmptyVector(const Vec& t)
-{
-	// EXPECT_NE(t.data(), nullptr); // ASSERT_NE(ptr, nullptr) = stop if fail
+// template<class Vec>
+// void TestConstEmptyVector(const Vec& t)
+// {
+// 	EXPECT_EQ(t.size(), 0);
+// 	EXPECT_EQ(t.capacity(), 0);
+// 	EXPECT_TRUE(t.empty());
+// 	EXPECT_EQ(t.begin(), t.end());
+// 	EXPECT_EQ(t.cbegin(), t.cend());
+// 	EXPECT_EQ(t.rbegin(), t.rend());
+// 	EXPECT_EQ(t.crbegin(), t.crend());
 
-	EXPECT_EQ(t.size(), 0);
-	EXPECT_EQ(t.capacity(), 0);
-	EXPECT_TRUE(t.empty());
-	EXPECT_EQ(t.begin(), t.end());
-	EXPECT_EQ(t.cbegin(), t.cend());
-	// auto rit = t.rbegin();
-	// (void)rit;
-	EXPECT_EQ(t.rbegin(), t.rend());
-	EXPECT_EQ(t.crbegin(), t.crend());
-
-	// int count = 0;
-    // for (int x : t)
-    //     ++count;
-    // EXPECT_EQ(count, 0);
-
-};
+// 	int count = 0;
+// 	for (int _ : t)
+// 		++count;
+// 	EXPECT_EQ(count, 0);
+// };
 
 // Empty Vector //-----------------------------------------------------------------
 
-TEST(EmptyVector, DefaultCtor_Int) 
-{	
-    // GTEST_LOG_(INFO) << "\n\tCall default ctor, check if size = 0, empty = true\n";
-	myvec::MyVector<int> t;
-	TestMutableEmptyVector(t);
-	t.clear();
-	TestMutableEmptyVector(t);
 
-	const myvec::MyVector<int> ct;
-	TestConstEmptyVector(ct);
+TEST(EmptyVector, Int) 
+{	
+	using T = int;
+
+	myvec::MyVector<T> t;
+	TestEmptyVector(t);
+	t.clear();
+	TestEmptyVector(t);
+
+	const myvec::MyVector<T> ct;
+	TestEmptyVector(ct);
 	// ct.clear(); // OK : compile error
 
-	myvec::MyVector<int> copy(t);
-	TestMutableEmptyVector(copy);
+	myvec::MyVector<T> src_mutable_copy;
+	TestEmptyVector(src_mutable_copy);
+	const myvec::MyVector<T> const_copy(src_mutable_copy);
+	TestEmptyVector(const_copy);
 
-	myvec::MyVector<int> src_move;
-	myvec::MyVector<int> move(std::move(src_move));
-	TestMutableEmptyVector(move);
+	const myvec::MyVector<T> src_const_copy;
+	TestEmptyVector(src_const_copy);
+	myvec::MyVector<T> mutable_copy(src_const_copy);
+	TestEmptyVector(mutable_copy);
+
+	myvec::MyVector<T> src_move_mutable;
+	TestEmptyVector(src_move_mutable);
+	const myvec::MyVector<T> const_move(std::move(src_move_mutable));
+	TestEmptyVector(const_move);
+
+	const myvec::MyVector<T> src_refref_const;
+	TestEmptyVector(src_refref_const);
+	myvec::MyVector<T> copy_from_refref_const(std::move(src_refref_const));
+	TestEmptyVector(copy_from_refref_const);
+
 }
 
 
@@ -205,7 +213,7 @@ TEST(Vector42, SizeCtor_Int)
 	EXPECT_EQ(t.capacity(), 42); 
 	EXPECT_FALSE(t.empty())	;
 	t.clear();
-	TestMutableEmptyVector(t);
+	TestEmptyVector(t);
 }
 
 // Reserve //-----------------------------------------------------------------
