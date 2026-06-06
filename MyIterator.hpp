@@ -17,7 +17,7 @@ namespace myvec
 	{
 		// friend MyVector;
 
-		private:
+		protected:
 			Pointer dataPtr_ = nullptr;
 
 		public:
@@ -116,7 +116,7 @@ namespace myvec
 		requires Reversible<Iterator>
 	class MyReverseIterator
 	{
-		private:
+		protected:
 			Iterator current_;
 
 		public:
@@ -128,8 +128,8 @@ namespace myvec
 			using iterator_concept 	= Iterator::iterator_concept;
 
 			MyReverseIterator() noexcept = default;
-			MyReverseIterator(Iterator& it) noexcept : current_(it) {}
-
+			MyReverseIterator(Iterator&& it) noexcept : current_(it) {}
+	
 			MyReverseIterator(MyReverseIterator&& move) = default;
 			MyReverseIterator& operator=(MyReverseIterator&& move) = default;	
 

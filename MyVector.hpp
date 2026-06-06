@@ -253,20 +253,31 @@ namespace myvec
 		using iterator = MyIterator<T, T*, T&>;
 		using const_iterator = MyIterator<T, const T*, const T&>;
 		using reverse_iterator = MyReverseIterator<iterator>;
-		using const_reverse_iterator = MyIterator<const_iterator>;
+		using const_reverse_iterator = MyReverseIterator<const_iterator>;
 
-		iterator begin() noexcept { return iterator(storage_.data_); }
-		iterator end() noexcept { return iterator(storage_.data_ + storage_.size_); }
+		iterator begin() noexcept { return (storage_.data_); }
+		iterator end() noexcept { return (storage_.data_ + storage_.size_); }
 
-		const_iterator begin() const noexcept { return const_iterator(storage_.data_); }
-		const_iterator end() const noexcept { return const_iterator(storage_.data_ + storage_.size_); }
-		const_iterator cbegin() const noexcept { return const_iterator(storage_.data_); }
-		const_iterator cend() const noexcept { return const_iterator(storage_.data_ + storage_.size_); }
+		const_iterator begin() const noexcept { return (storage_.data_); }
+		const_iterator end() const noexcept { return (storage_.data_ + storage_.size_); }
+		const_iterator cbegin() const noexcept { return (storage_.data_); }
+		const_iterator cend() const noexcept { return (storage_.data_ + storage_.size_); }
 
-		const_iterator rbegin() const noexcept { return reverse_iterator(storage_.data_ + storage_.size_); }
-		const_iterator rend() const noexcept { return reverse_iterator(storage_.data_); }
-		const_iterator crbegin() const noexcept { return const_reverse_iterator(storage_.data_ + storage_.size_); }
-		const_iterator crend() const noexcept { return const_reverse_iterator(storage_.data_); }
+		reverse_iterator rbegin() noexcept 
+		{  return iterator(storage_.data_ + storage_.size_); }
+		reverse_iterator rend() noexcept 
+		{ return iterator(storage_.data_); }
+
+		const_reverse_iterator rbegin() const noexcept 
+		{ return const_iterator(storage_.data_ + storage_.size_); }
+		const_reverse_iterator rend() const noexcept 
+		{ return const_iterator(storage_.data_); }
+
+		const_reverse_iterator crbegin() const noexcept 
+		{ return const_iterator(storage_.data_ + storage_.size_); }
+
+		const_reverse_iterator crend() const noexcept 
+		{ return const_iterator(storage_.data_); }
 
 
 		T& operator[](size_t id) noexcept {return storage_.data_[id];}
@@ -281,6 +292,23 @@ namespace myvec
 		T*		data		(void)	const	noexcept { return storage_.data_; }
 
 //------------------------------------------------------------------------------------------------
+		
+		// Why *(end - 1) vs data[size - 1]
+		//		iterator is guaranteed
+		//		data, size - optional, could be T* start, T* end_elements, T* end_capacity
+		//
+		// C++26
+		// T&		back(void) pre(!empty()) { return *(end() - 1);};
+		T&				back		(void) { return *(end() - 1);};
+		const T&		back		(void) const { return *(end() - 1);};
+
+		constexpr void	pop_back	(void) 
+		{
+			StorageRAII::AllocTraits::destroy(storage_.alloc_, storage_.data_ + storage_.size_ - 1); 
+			--storage_.size_;
+		}
+
+
 		void	clear		(void)	noexcept 
 		{ 
 			// storage_.~storage(); 
@@ -357,8 +385,8 @@ namespace myvec
 			else if 	( 	   !std::is_nothrow_move_constructible_v<T> 
 							&& !std::is_trivially_copyable_v<T>)
 				for (; last > idx; --last)
-					StorageRAII::AllocTraits::construct(	temp.alloc_, 
-															temp.data_ + last, 
+					StorageRAII::AllocTraits::construct(	storage_.alloc_, 
+															storage_.data_ + last, 
 															storage_.data_[last - 1] );
 					// new (temp.data_ + idx) T(storage_.data_[idx]);
 			else
@@ -447,10 +475,8 @@ namespace myvec
 		}
 
 
-		// insert()
-		// back()
-		// pop_back()
 		// erase()
+		// insert()
 
 	}; // end MyVector
 
