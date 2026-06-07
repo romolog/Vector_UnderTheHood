@@ -73,10 +73,7 @@ class ThrowClass
 				throw std::runtime_error("ThrowClass Default Ctor");
 			ptr = new char[42];
 		};
-
-
 		~ThrowClass(){ delete[] ptr;};
-
 };
 
 // template<class Vec>
@@ -102,32 +99,133 @@ void TestEmptyVector(Vec& t)
 	EXPECT_EQ(t.crbegin(), t.crend());
 
 	int count = 0;
-	for (int _ : t)
+	for (auto&& _ : t)
+	{
+		(void)_;
 		++count;
+	}
 	EXPECT_EQ(count, 0);
 };
 
-// template<class Vec>
-// void TestConstEmptyVector(const Vec& t)
-// {
-// 	EXPECT_EQ(t.size(), 0);
-// 	EXPECT_EQ(t.capacity(), 0);
-// 	EXPECT_TRUE(t.empty());
-// 	EXPECT_EQ(t.begin(), t.end());
-// 	EXPECT_EQ(t.cbegin(), t.cend());
-// 	EXPECT_EQ(t.rbegin(), t.rend());
-// 	EXPECT_EQ(t.crbegin(), t.crend());
+template <class T>
+void RunEmptyVectorTests (void) 
+{	
+	// VALIDATE TEST ON STD LIB
+	std::vector<T> st;
+	TestEmptyVector(st);
 
-// 	int count = 0;
-// 	for (int _ : t)
-// 		++count;
-// 	EXPECT_EQ(count, 0);
-// };
+	// EMPTY VECTOR
+	myvec::MyVector<T> t;
+	TestEmptyVector(t);
+
+	// EMPTY VECTOR CONST
+	const myvec::MyVector<T> ct;
+	TestEmptyVector(ct);
+	// ct.clear(); // OK : compile error
+
+	// COPY
+	myvec::MyVector<T> src_mutable_copy;
+	TestEmptyVector(src_mutable_copy);
+	const myvec::MyVector<T> const_copy{src_mutable_copy};
+	TestEmptyVector(const_copy);
+
+	// COPY FROM CONST
+	const myvec::MyVector<T> src_const_copy;
+	TestEmptyVector(src_const_copy);
+	myvec::MyVector<T> mutable_copy{src_const_copy};
+	TestEmptyVector(mutable_copy);
+
+	// MOVE
+	myvec::MyVector<T> src_move_mutable;
+	TestEmptyVector(src_move_mutable);
+	myvec::MyVector<T> move{std::move(src_move_mutable)};
+	TestEmptyVector(move);
+
+	// MOVE(->COPY) FROM CONST
+	const myvec::MyVector<T> src_const_refref;
+	TestEmptyVector(src_const_refref);
+	myvec::MyVector<T> copy_from_const_refref{std::move(src_const_refref)};
+	TestEmptyVector(copy_from_const_refref);
+
+	// COPY ASSIGN
+	myvec::MyVector<T> src_copy_assign;
+	TestEmptyVector(src_copy_assign);	
+	myvec::MyVector<T> copy_assign;
+	TestEmptyVector(copy_assign);
+	copy_assign = src_copy_assign;
+	TestEmptyVector(copy_assign);
+
+	// COPY ASSIGN FROM CONST
+	const myvec::MyVector<T> src_const_copy_assign;
+	TestEmptyVector(src_const_copy_assign);	
+	myvec::MyVector<T> assign_copy_from_const;
+	TestEmptyVector(assign_copy_from_const);
+	assign_copy_from_const = src_const_copy_assign;
+	TestEmptyVector(assign_copy_from_const);
+
+	// COPY ASSIGN SELF
+	myvec::MyVector<T> copy_self;
+	TestEmptyVector(copy_self);
+	copy_self = copy_self;
+	TestEmptyVector(copy_self);
+
+	// MOVE ASSIGN
+	myvec::MyVector<T> src_move_assign;
+	TestEmptyVector(src_move_assign);	
+	myvec::MyVector<T> move_assign;
+	TestEmptyVector(move_assign);
+	move_assign = std::move(src_move_assign);
+	TestEmptyVector(move_assign);
+
+	// MOVE ASSIGN SELF
+	myvec::MyVector<T> move_self;
+	TestEmptyVector(move_self);
+	move_self = std::move(move_self);
+	TestEmptyVector(move_self);
+}
+
+template<class Vec>
+void TestVector(Vec& t, size_t size, size_t capacity)
+{
+	EXPECT_EQ(t.size(), size);
+	EXPECT_GE(t.capacity(), capacity);
+	EXPECT_FALSE(t.empty());
+	EXPECT_NE(t.begin(), t.end());
+	EXPECT_NE(t.cbegin(), t.cend());
+	EXPECT_NE(t.rbegin(), t.rend());
+	EXPECT_NE(t.crbegin(), t.crend());
+
+	EXPECT_EQ(t.end() - t.begin(), size);
+	EXPECT_EQ(t.cend() - t.cbegin(), size);
+	EXPECT_EQ(t.rend() - t.rbegin(), size);
+	EXPECT_EQ(t.crend() - t.crbegin(), size);
+
+	int count = 0;
+	for (auto&& _ : t)
+	{
+		(void)_;
+		++count;
+	}
+	EXPECT_EQ(count, size);
+};
+
+
+// Empty Vector //-----------------------------------------------------------------
+
+TEST(EmptyVector, Default_Int) 
+{ RunEmptyVectorTests<int>(); }
+
+
+TEST(EmptyVector, Default_StdVecOfString) 
+{ RunEmptyVectorTests<std::vector<std::string> >(); }
+
 
 // Empty Vector //-----------------------------------------------------------------
 
 
-TEST(EmptyVector, Int) 
+// Clear //-----------------------------------------------------------------
+
+TEST(Clear, Int) 
 {	
 	using T = int;
 
@@ -139,29 +237,7 @@ TEST(EmptyVector, Int)
 	const myvec::MyVector<T> ct;
 	TestEmptyVector(ct);
 	// ct.clear(); // OK : compile error
-
-	myvec::MyVector<T> src_mutable_copy;
-	TestEmptyVector(src_mutable_copy);
-	const myvec::MyVector<T> const_copy(src_mutable_copy);
-	TestEmptyVector(const_copy);
-
-	const myvec::MyVector<T> src_const_copy;
-	TestEmptyVector(src_const_copy);
-	myvec::MyVector<T> mutable_copy(src_const_copy);
-	TestEmptyVector(mutable_copy);
-
-	myvec::MyVector<T> src_move_mutable;
-	TestEmptyVector(src_move_mutable);
-	const myvec::MyVector<T> const_move(std::move(src_move_mutable));
-	TestEmptyVector(const_move);
-
-	const myvec::MyVector<T> src_refref_const;
-	TestEmptyVector(src_refref_const);
-	myvec::MyVector<T> copy_from_refref_const(std::move(src_refref_const));
-	TestEmptyVector(copy_from_refref_const);
-
 }
-
 
 // TEST(EmptyVector, DefaultCtor_ThrowClass) 
 // {	

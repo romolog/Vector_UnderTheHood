@@ -45,18 +45,24 @@ namespace myvec
 			capacity_(capacity), 
 			data_(AllocTraits::allocate(alloc_, capacity)) // = data_ (::operator new(sizeof(T) * capacity))
 			// size_ (0) added by compiler
-		{};
+		{}
 		
-		StorageRAII(const StorageRAII&) = delete;
+		StorageRAII(const StorageRAII&) = delete; 
 		StorageRAII& operator=(const StorageRAII&) = delete;
-	
+		// StorageRAII(const StorageRAII& copy) 
+		// {}
+
+		// StorageRAII& operator=(const StorageRAII& copy) 
+		// {return *this;}
+
+
 		StorageRAII(StorageRAII&& move) noexcept
 		{
 			// allocator is not propagated intentionally 
 			std::swap(capacity_, move.capacity_);
 			std::swap(data_, move.data_);
 			std::swap(size_, move.size_);
-		};
+		}
 	
 		StorageRAII& operator=(StorageRAII&& move) noexcept
 		{
@@ -65,7 +71,7 @@ namespace myvec
 			std::swap(data_, move.data_);
 			std::swap(size_, move.size_);
 			return *this;
-		};
+		}
 	
 		~StorageRAII()
 		{
@@ -76,7 +82,7 @@ namespace myvec
 			// custom allocator may not support deallocate(custom_alloc, nullptr, 0)
 			if (data_)
 				AllocTraits::deallocate(alloc_, data_, capacity_);
-		};
+		}
 	
 		//	alignas alignof std::align_val_t
 		// ::operator new(n * sizeof(T), std::align_val_t(alignof(T)))

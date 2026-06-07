@@ -4,10 +4,11 @@
 #include "MyIterator.hpp"
 
 #include <algorithm> 
-#include <cstddef> // ptrdiff_t
-#include <type_traits>
 #include <concepts>
+#include <cstddef> // ptrdiff_t
 #include <cstring> // memcpy
+#include <type_traits>
+#include <utility> // declval
 
 // UNDER THE HOOD 
 //	it's my self-taught project
@@ -107,13 +108,16 @@ namespace myvec
         //           const Allocator& alloc = Allocator() );
 
 
-		constexpr MyVector(MyVector&& move) noexcept : storage_(std::move(move.storage_)) {}
+		constexpr MyVector(MyVector&& move) noexcept : storage_(std::move(move.storage_)) 
+		{ std::cout << "\n\tMyVector Move Ctor\n\n"; }
 
 		constexpr MyVector(MyVector&& move, const std::type_identity_t<Allocator>& alloc) noexcept 
-			: storage_(std::move(move.storage_, alloc)) {}
+			: storage_(std::move(move.storage_, alloc)) 
+		{std::cout << "\n\tMyVector Move Ctor Alloc\n\n";}
 
 		MyVector& operator=(MyVector&& move) 
 		{
+			std::cout << "\n\tMyVector Move Assign\n\n";
 			storage_ = std::move(move.storage_);
 			return *this;
 		}
@@ -126,6 +130,7 @@ namespace myvec
 		public:
 		using IfCopyConstructibleConditional = 
 					std::conditional_t<std::is_copy_constructible_v<T>, MyVector, Blocking>;
+					
 		constexpr MyVector(const IfCopyConstructibleConditional& copy) : 
 			storage_(StorageRAII(copy.storage_.size_))
 		{
@@ -211,15 +216,36 @@ namespace myvec
 
 		// Technique #2 to block a call of Ctor: SFINAE void_t < decltype( T( declval<T>() )) >
 		// 		could be replaced by C++20: requires std::is_copy_constructible_v<T>
-		template <typename Arg>
-		using IfCopyConstructibleSFINAE = std::void_t< decltype( Arg(std::declval<const Arg&>() ) ) >;
+		// template <typename Arg>
+		// using IfCopyConstructibleSFINAE = std::void_t< decltype( Arg(std::declval< Arg& >() ) ) >;
 
-		template <class Arg = T, class = IfCopyConstructibleSFINAE<Arg> >
+		// template <class Arg = T, class = IfCopyConstructibleSFINAE<Arg> >
+		// MyVector& operator=(const MyVector& copy)
+		// {
+		// 	static_assert(std::is_same_v<Arg,T>, "Arg must be the same as T");
+		// 	MyVector newCopy(copy);
+		// 	*this = std::move(newCopy); 
+		// 	return *this;
+		// }
+
+
+		// template <typename Arg>
+		// using IfCopyConstructibleSFINAE = std::void_t< decltype( Arg(std::declval< Arg& >() ) ) >;
+
+		// template <class Arg = T, class = IfCopyConstructibleSFINAE<Arg> >
+		// static_assert(std::is_same_v<Arg,T>, "Arg must be the same as T");
+
 		MyVector& operator=(const MyVector& copy)
+			requires std::copy_constructible<T>
 		{
-			MyVector newCopy(copy);
+
+			std::cout << "\n\tMyVector Assign Operator\n\n";
+			MyVector newCopy{copy};
 			*this = std::move(newCopy); 
+			return *this;
 		}
+
+
 
 
 		//	std::initializer_list is already inherently const — its elements are always const T, 
