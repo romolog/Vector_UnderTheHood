@@ -33,6 +33,9 @@ else()
 	if(NOT TARGET GTest::GTest)
 		add_library(GTest::GTest ALIAS gtest)
 	endif()
+	if(NOT TARGET GTest::GMock)
+		add_library(GTest::GMock ALIAS gmock)
+	endif()
 	if(NOT TARGET GTest::Main)
 		add_library(GTest::Main ALIAS gtest_main)
 	endif()
@@ -48,6 +51,7 @@ target_compile_options(myvec_tests PRIVATE
 )
 target_link_libraries(myvec_tests PRIVATE
     GTest::GTest
+	GTest::GMock
     GTest::Main
 )
 

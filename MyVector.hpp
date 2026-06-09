@@ -33,14 +33,29 @@ namespace myvec
 	template <typename T, typename Allocator = std::allocator<T> >
 	class MyVector
 	{
-
-
 		// exception safety
 		//		destruction of StorageRAII will be called 
 		//		even if (copy) constructor of MyVector would fail
+		private:
 		using StorageRAII = myvec::StorageRAII<T, Allocator>;
 		StorageRAII storage_;
 
+		public:
+		using value_type = T;
+		using allocator = Allocator;
+		using size_type = size_t;
+		using difference_type = std::ptrdiff_t;
+		using reference = value_type&;
+		using const_reference = const value_type&;
+		using pointer = StorageRAII::AllocTraits::pointer;		
+		using const_pointer = StorageRAII::AllocTraits::const_pointer;
+
+		using iterator = MyIterator<T, T*, T&>;
+		using const_iterator = MyIterator<T, const T*, const T&>;
+
+		// MyReverseIterator is a limited implementation of std::reverse_iterator<iterator>
+		using reverse_iterator = MyReverseIterator<iterator>;// std::reverse_iterator<iterator>
+		using const_reverse_iterator = MyReverseIterator<const_iterator>;// std::reverse_iterator<const_iterator>
 
 		public:
 
@@ -56,7 +71,9 @@ namespace myvec
 			: storage_(StorageRAII(size, alloc))
 		{
 			for(; storage_.size_ < size; ++storage_.size_)
-				new(storage_.data_ + storage_.size_) T();
+				StorageRAII::AllocTraits::construct(storage_.alloc_, storage_.data_ + storage_.size_);
+				// new(storage_.data_ + storage_.size_) T();
+			
 		}
 
 		constexpr MyVector(size_t count, const T& val, const std::type_identity_t<Allocator>& alloc = Allocator())
@@ -64,7 +81,8 @@ namespace myvec
 			: storage_(StorageRAII(count, alloc))
 		{
 			for(; storage_.size_ < count; ++storage_.size_)
-				new(storage_.data_ + storage_.size_) T(val);
+				StorageRAII::AllocTraits::construct(storage_.alloc_, storage_.data_ + storage_.size_, val);
+				// new(storage_.data_ + storage_.size_) T(val);
 		}
 
 // | Member                                   | Description                                              
@@ -88,18 +106,23 @@ namespace myvec
 
 
 
-		template <typename It>
-		using iterator_category_t = typename std::iterator_traits<It>::iterator_category;
+		// template <typename It>
+		// using iterator_category_t = typename std::iterator_traits<It>::iterator_category;
 
-		template <	typename InputIt, 
-					typename = std::enable_if_t<	
-								std::is_base_of_v<	
-									std::input_iterator_tag, iterator_category_t< InputIt> > > >
-		constexpr MyVector(InputIt first, InputIt last, const std::type_identity_t<Allocator>& alloc = Allocator()) :
-			storage_(StorageRAII(std::distance(first, last), alloc))
+		// template <	typename InputIt, 
+		// 			typename = std::enable_if_t<	
+		// 						std::is_base_of_v<	
+		// 							std::input_iterator_tag, iterator_category_t< InputIt> > > >
+		// constexpr MyVector(InputIt first, InputIt last, const std::type_identity_t<Allocator>& alloc = Allocator()) :
+
+		template < typename InputIt >
+		constexpr MyVector(InputIt first, InputIt last, const std::type_identity_t<Allocator>& alloc = Allocator()) 
+			requires std::input_iterator<InputIt>
+			: storage_(StorageRAII(std::distance(first, last), alloc))
 		{
 			for(; first != last; ++first, ++storage_.size_)
-				new(storage_.data_ + storage_.size_) T(*first);
+				StorageRAII::AllocTraits::construct(storage_.alloc_, storage_.data_ + storage_.size_, *first);
+				// new(storage_.data_ + storage_.size_) T(*first);
 		}
 
 		//	TODO: add range ctor
@@ -149,7 +172,10 @@ namespace myvec
 				//	manual approach is better than uninit_copy for exception safety
 				//	size_ is catched properly to call Dtor of StorageRAII:
 				for(; storage_.size_ < copy.storage_.size_; ++storage_.size_)
-					new(storage_.data_ + storage_.size_) T(copy.storage_.data_[storage_.size_]);
+					StorageRAII::AllocTraits::construct(	storage_.alloc_, 
+															storage_.data_ + storage_.size_, 
+															copy.storage_.data_[storage_.size_]);
+					// new(storage_.data_ + storage_.size_) T(copy.storage_.data_[storage_.size_]);
 			}
 		}
 
@@ -209,7 +235,10 @@ namespace myvec
 				//	manual approach is better than uninit_copy for exception safety
 				//	size_ is catched properly to call Dtor of StorageRAII:
 				for (; storage_.size_ < copy.storage_.size_; ++storage_.size_)
-					new(storage_.data_ + storage_.size_) T(copy.storage_.data_[storage_.size_]);
+					StorageRAII::AllocTraits::construct(	storage_.alloc_, 
+															storage_.data_ + storage_.size_, 
+															copy.storage_.data_[storage_.size_]);
+					// new(storage_.data_ + storage_.size_) T(copy.storage_.data_[storage_.size_]);
 			}
 		}
 
@@ -276,34 +305,27 @@ namespace myvec
 		}
 
 
-		using iterator = MyIterator<T, T*, T&>;
-		using const_iterator = MyIterator<T, const T*, const T&>;
-		using reverse_iterator = MyReverseIterator<iterator>;
-		using const_reverse_iterator = MyReverseIterator<const_iterator>;
 
-		iterator begin() noexcept { return (storage_.data_); }
-		iterator end() noexcept { return (storage_.data_ + storage_.size_); }
 
-		const_iterator begin() const noexcept { return (storage_.data_); }
-		const_iterator end() const noexcept { return (storage_.data_ + storage_.size_); }
-		const_iterator cbegin() const noexcept { return (storage_.data_); }
-		const_iterator cend() const noexcept { return (storage_.data_ + storage_.size_); }
+		iterator 				begin() 			noexcept { return (storage_.data_); }
+		iterator 				end() 				noexcept { return (storage_.data_ + storage_.size_); }
 
-		reverse_iterator rbegin() noexcept 
-		{  return iterator(storage_.data_ + storage_.size_); }
-		reverse_iterator rend() noexcept 
-		{ return iterator(storage_.data_); }
+		const_iterator 			begin() 	const 	noexcept { return (storage_.data_); }
+		const_iterator 			end() 		const 	noexcept { return (storage_.data_ + storage_.size_); }
+		const_iterator 			cbegin() 	const 	noexcept { return (storage_.data_); }
+		const_iterator 			cend()		const 	noexcept { return (storage_.data_ + storage_.size_); }
 
-		const_reverse_iterator rbegin() const noexcept 
-		{ return const_iterator(storage_.data_ + storage_.size_); }
-		const_reverse_iterator rend() const noexcept 
-		{ return const_iterator(storage_.data_); }
+		reverse_iterator 		rbegin() 			noexcept { return iterator(storage_.data_ 
+																				+ storage_.size_); }
+		reverse_iterator 		rend() 				noexcept { return iterator(storage_.data_); }
 
-		const_reverse_iterator crbegin() const noexcept 
-		{ return const_iterator(storage_.data_ + storage_.size_); }
+		const_reverse_iterator 	rbegin()	const 	noexcept { return const_iterator(storage_.data_ 
+																					+ storage_.size_); }
+		const_reverse_iterator 	rend()		const	noexcept { return const_iterator(storage_.data_); }
 
-		const_reverse_iterator crend() const noexcept 
-		{ return const_iterator(storage_.data_); }
+		const_reverse_iterator 	crbegin()	const	noexcept { return const_iterator(storage_.data_ 
+																					+ storage_.size_); }
+		const_reverse_iterator	crend()		const	noexcept { return const_iterator(storage_.data_); }
 
 
 		T& operator[](size_t id) noexcept {return storage_.data_[id];}

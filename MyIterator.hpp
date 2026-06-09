@@ -72,7 +72,7 @@ namespace myvec
 
 			// +n = copy + advance(n)
 			// operator+ : implemented by operator+=
-			MyIterator			operator+	(const difference_type shift) noexcept
+			MyIterator			operator+	(const difference_type shift) const noexcept
 			{	
 				MyIterator res(*this);
 				res += shift;
@@ -86,14 +86,14 @@ namespace myvec
 			MyIterator&			operator-=	(const difference_type shift) noexcept 
 			{ *this += -shift; return *this; }
 
-			MyIterator			operator-	(const difference_type shift) noexcept
+			MyIterator			operator-	(const difference_type shift) const noexcept
 			{	
 				MyIterator res(*this);
 				res -= shift;
 				return res;
 			}
 			
-			difference_type 	operator-	(const MyIterator& rhs) noexcept { return (dataPtr_ - rhs.dataPtr_); }
+			difference_type 	operator-	(const MyIterator& rhs) const noexcept { return (dataPtr_ - rhs.dataPtr_); }
 
 	};
 
@@ -218,7 +218,7 @@ namespace myvec
 				return *this; 
 			}
 
-			MyReverseIterator	operator+	(const difference_type shift) noexcept
+			MyReverseIterator	operator+	(const difference_type shift) const noexcept
 			{	
 				MyReverseIterator res(*this);
 				res += shift;
@@ -232,16 +232,15 @@ namespace myvec
 			MyReverseIterator&	operator-=	(const difference_type shift) noexcept 
 			{ (*this) += -shift; return *this; }
 
-			MyReverseIterator	operator-	(const difference_type shift) noexcept
+			MyReverseIterator	operator-	(const difference_type shift) const noexcept
 			{	
 				MyReverseIterator res(*this);
 				res -= shift;
 				return res;
 			}
 			
-			difference_type 	operator-	(const MyReverseIterator& rhs) noexcept 
-			{ return (current_ - rhs.current_); }
-
+			difference_type 	operator-	(const MyReverseIterator& rhs) const noexcept 
+			{ return (rhs.current_ - current_); }
 	};
 
 	
