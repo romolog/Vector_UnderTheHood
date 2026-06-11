@@ -43,14 +43,17 @@ namespace myvec
 			// decltype(auto) b = r;  // int&
 			// decltype(auto) operator*() const
 			reference 			operator*	() const noexcept { return *dataPtr_;}
+
 			reference			operator[]	(difference_type idx) const noexcept { return *(dataPtr_ + idx);}
+
+			// TODO : operator->
 
 			MyIterator&			operator++	() noexcept { ++dataPtr_; return *this; }
 
 			MyIterator			operator++	(int) noexcept 
 			{
 				MyIterator prev(*this);
-				++dataPtr_;
+				operator++();
 				return prev;
 			}
 
@@ -197,6 +200,12 @@ namespace myvec
 			}
 
 			auto operator<=>(const MyReverseIterator& second) const noexcept = default; 
+
+			// just for fun
+			// bool operator==(const MyReversIterator& rhs)
+			// {
+			//		return dataPtr == rhs.dataPtr;
+			// }
 
 			MyReverseIterator&	operator+=	(const difference_type shift) 
 				noexcept 

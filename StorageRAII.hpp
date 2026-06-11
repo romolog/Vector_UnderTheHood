@@ -31,7 +31,7 @@ namespace myvec
 	// | Recommended when no custom logic needed    | Yes                                | No                                        |
 	
 	
-		// StorageRAII() = default;
+		StorageRAII() = default;
 	
 		// StorageRAII(Allocator some_alloc = Allocator()) :
 		// 	alloc_(some_alloc) 

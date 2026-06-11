@@ -50,7 +50,7 @@ namespace myvec
 		using pointer = StorageRAII::AllocTraits::pointer;		
 		using const_pointer = StorageRAII::AllocTraits::const_pointer;
 
-		using iterator = MyIterator<T, T*, T&>;
+		using iterator = MyIterator<T, T*, T&>; // if T is already 'const T', I will never got T
 		using const_iterator = MyIterator<T, const T*, const T&>;
 
 		// MyReverseIterator is a limited implementation of std::reverse_iterator<iterator>
@@ -64,25 +64,31 @@ namespace myvec
 		//			noexcept (False) =  throws
 		constexpr MyVector() noexcept(noexcept(Allocator())) : MyVector(Allocator()) {}
 
-		constexpr explicit MyVector(const Allocator& alloc ) : storage_(StorageRAII(0, alloc)) {}
+		constexpr explicit MyVector(const Allocator& alloc ) { storage_.alloc_ = alloc; }
 
 		explicit MyVector(size_t size, const Allocator& alloc = Allocator())
 			requires std::default_initializable<T>
-			: storage_(StorageRAII(size, alloc))
 		{
-			for(; storage_.size_ < size; ++storage_.size_)
-				StorageRAII::AllocTraits::construct(storage_.alloc_, storage_.data_ + storage_.size_);
-				// new(storage_.data_ + storage_.size_) T();
+			if (size)
+			{
+				storage_ = StorageRAII(size, alloc);	
+				for(; storage_.size_ < size; ++storage_.size_)
+					StorageRAII::AllocTraits::construct(storage_.alloc_, storage_.data_ + storage_.size_);
+					// new(storage_.data_ + storage_.size_) T();
+			}
 			
 		}
 
 		constexpr MyVector(size_t count, const T& val, const std::type_identity_t<Allocator>& alloc = Allocator())
 			requires std::copy_constructible<T>
-			: storage_(StorageRAII(count, alloc))
 		{
-			for(; storage_.size_ < count; ++storage_.size_)
-				StorageRAII::AllocTraits::construct(storage_.alloc_, storage_.data_ + storage_.size_, val);
-				// new(storage_.data_ + storage_.size_) T(val);
+			if (count)
+			{
+				storage_ = StorageRAII(count, alloc);
+				for(; storage_.size_ < count; ++storage_.size_)
+					StorageRAII::AllocTraits::construct(storage_.alloc_, storage_.data_ + storage_.size_, val);
+					// new(storage_.data_ + storage_.size_) T(val);
+			}
 		}
 
 // | Member                                   | Description                                              
@@ -118,11 +124,14 @@ namespace myvec
 		template < typename InputIt >
 		constexpr MyVector(InputIt first, InputIt last, const std::type_identity_t<Allocator>& alloc = Allocator()) 
 			requires std::input_iterator<InputIt>
-			: storage_(StorageRAII(std::distance(first, last), alloc))
 		{
-			for(; first != last; ++first, ++storage_.size_)
-				StorageRAII::AllocTraits::construct(storage_.alloc_, storage_.data_ + storage_.size_, *first);
-				// new(storage_.data_ + storage_.size_) T(*first);
+			if (first != last)
+			{
+				storage_ = StorageRAII(std::distance(first, last), alloc);
+				for(; first != last; ++first, ++storage_.size_)
+					StorageRAII::AllocTraits::construct(storage_.alloc_, storage_.data_ + storage_.size_, *first);
+					// new(storage_.data_ + storage_.size_) T(*first);
+			}
 		}
 
 		//	TODO: add range ctor

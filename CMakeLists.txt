@@ -41,7 +41,7 @@ else()
 	endif()
 endif()
 
-add_executable(myvec_tests MyVector.hpp MyVector_test.cpp)
+add_executable(myvec_tests MyVector.hpp MyVectorTest.cpp)
 
 target_include_directories(myvec_tests PUBLIC ${CMAKE_SOURCE_DIR})
 
