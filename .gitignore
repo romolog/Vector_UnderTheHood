@@ -1,3 +1,7 @@
+.gitignore
+MyVectorTest_README.md
+MyVectorTestClasses.hpp
+
 tools/
 snapshots/
 build/

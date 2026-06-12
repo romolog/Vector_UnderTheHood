@@ -7,72 +7,31 @@
 #include <type_traits>
 #include <vector>
 
-
-// GTEST_LOG_(INFO) << "\n\tCall default ctor, check if size = 0, empty = true\n";
-// EXPECT_NE(t.data(), nullptr); // ASSERT_NE(ptr, nullptr) = stop if fail
-
-
-// asm volatile("" : "+m"(obj) : : "memory");
-	// ^^        ^  ^^^^^^^^   	^   ^^^^^^^
-	// |         |     |        |      |
-	// |         |     |        |   Clobber list
-	// |         |     |      Output list (empty)
-	// |         |   Input/Output operand
-	// |       Output operands
-	// Assembly template (empty)
-// 1. asm volatile
-//     asm - Inline assembly statement
-//     volatile - Prevents the compiler from moving or removing this asm block
-//         Even if it seems useless, it must stay exactly where placed
-// 2. "" - Empty assembly template
-//     No actual assembly instructions are generated
-//     The effect comes entirely from the constraints, not from executed code
-// 3. "+m"(obj) - Input/Output operand
-//     + - Means this is both read and written (input/output)
-//     m - Memory operand (not a register)
-//     (obj) - The variable to treat as memory operand
-// 	 This tells the compiler:
-//     obj is used as an input
-//     obj is modified as an output
-//     The modification happens through memory, not registers
-// 4. Empty output list :
-//     No explicit output operands beyond those in the input/output list
-// 5. "memory" - Memory clobber
-//     Tells the compiler: "This asm block may read/write any memory address"
-//     Forces the compiler to reload all memory values from actual memory
-//     Prevents keeping values in registers across this barrier
-//
-// OPTIONS:
-// // 1. Minimum barrier (only memory clobber)
-// asm volatile("" ::: "memory");
-// // Stops reordering, but may not preserve individual variables
-
-// // 2. Variable-specific barrier (your version)
-// asm volatile("" : "+m"(obj) : : "memory");
-// // Best for forcing operations on specific variable
-
-// // 3. Multiple variables
-// asm volatile("" : "+m"(obj1), "+m"(obj2) : : "memory");
-
-// // 4. With input only (read barrier)
-// asm volatile("" : : "m"(obj) : "memory");
-// // Says: "I read obj", but don't modify it
-
-// // 5. Maximum barrier (force all memory)
-//	//	IMPORTANT: is NOT a superset of the specific operand barrier
-// asm volatile("" : : : "memory");
-// // All memory operations are observable
 template <typename T>
 __attribute__((always_inline)) 
-void compiler_barrier(T& obj) {
+void compiler_optimization_barrier(T& obj) 
+{
 	asm volatile("" : "+m"(obj) : : "memory");
 }
 
-template <typename T>
+template <typename T, typename U>
 __attribute__((always_inline)) 
-void compiler_barrier(T& obj_1, T& obj_2) {
-	asm volatile("" : "+m"(obj_1), "+m"(obj_1) : : "memory");
+void compiler_optimization_barrier(T&& obj_1, U&& obj_2) 
+{
+	using T1 = std::remove_reference_t<T>;
+	using U1 = std::remove_reference_t<U>;
+	
+	if constexpr (std::is_const_v<T1>)
+		asm volatile("" : : "m"(obj_1) : "memory");
+	else
+		asm volatile("" : "+m"(obj_1) : : "memory");
+	
+	if constexpr (std::is_const_v<U1>)
+		asm volatile("" : : "m"(obj_2) : "memory");
+	else 
+		asm volatile("" : "+m"(obj_2) : : "memory");
 }
+
 
 template<class Vec>
 void TestSizeVector(Vec& t, size_t size)
@@ -114,6 +73,12 @@ void TestSizeValVector(Vec& t)
 };
 
 template<typename Vec>
+void TestSizeValVector(Vec& t, size_t size)
+{
+	TestSizeVector(t, size);
+};
+
+template<typename Vec>
 void TestSizeValVector(Vec& t, size_t size, const typename Vec::value_type& val)
 {
 
@@ -123,6 +88,7 @@ void TestSizeValVector(Vec& t, size_t size, const typename Vec::value_type& val)
 	// EXPECT_EQ(t[0], val);
 
 };
+
 
 template<typename Vec, typename Iter>
 	requires std::input_iterator<Iter>
@@ -234,127 +200,17 @@ void TestIteratorWrite(Iter v_it, Iter v_end, MyIter mv_it, MyIter mv_end, Val v
 
 }
 
-// #include <vector>
-// #include <atomic>
-// #include <cstring>
+template <typename Vec>
+void TestPushBack(	Vec t, 
+					const typename Vec::value_type& val_init,  
+					const typename Vec::value_type& val)
+{
 
-// class IterType {
-// public:
-//     int* ptr;
-//     int dummy;
-    
-//     IterType() : ptr(nullptr), dummy(0) {}
-//     IterType(int* p) : ptr(p), dummy(1) {}
-    
-//     IterType& operator=(const IterType& other) {
-//         ptr = other.ptr;
-//         dummy = other.dummy;
-//         // Force observable side effect
-//         asm volatile("" : : "r"(ptr), "r"(dummy) : "memory");
-//         return *this;
-//     }
-// };
+	size_t prev_cap = t.capacity();
+	size_t prev_size = t.size();
+	t.push_back(val);
+	EXPECT_GE(t.capacity(), prev_cap);
+	EXPECT_EQ(t.size(), prev_size + 1);
+	EXPECT_EQ(t.back(), val);
 
-// Compiler barrier helper
-// template<typename T>
-// __attribute__((always_inline)) 
-// void compiler_barrier(T& obj) {
-//     asm volatile("" : "+m"(obj) : : "memory");
-// }
-
-// int main() {
-//     std::vector<int> vector = {1, 2, 3};
-    
-//     iter_type it_copy_assign;
-//     iter_type end_copy_assign;
-    
-//     // Force copy assignment to be observable
-//     compiler_barrier(it_copy_assign);
-//     compiler_barrier(end_copy_assign);
-    
-//     it_copy_assign = vector.begin();
-//     end_copy_assign = vector.end();
-    
-//     compiler_barrier(it_copy_assign);
-//     compiler_barrier(end_copy_assign);
-    
-//     // Use the values to prevent dead code elimination
-//     asm volatile("" : : "r"(it_copy_assign.ptr), "r"(end_copy_assign.ptr));
-    
-//     return 0;
-// }
-
-/////////////////////////////////////////////////////////////////////////////////////////////////
-
-// template<class Vec>
-// void TestEmptyVector(Vec& t)
-// {
-// 	EXPECT_EQ(t.size(), 0);
-// 	EXPECT_EQ(t.capacity(), 0);
-// 	EXPECT_TRUE(t.empty());
-// 	EXPECT_EQ(t.begin(), t.end());
-// 	EXPECT_EQ(t.cbegin(), t.cend());
-// 	EXPECT_EQ(t.rbegin(), t.rend());
-// 	EXPECT_EQ(t.crbegin(), t.crend());
-
-// 	int count = 0;
-// 	for (auto&& _ : t)
-// 	{
-// 		(void)_;
-// 		++count;
-// 	}
-// 	EXPECT_EQ(count, 0);
-// };
-
-
-// template <typename T>
-// std::vector<T> std_vector42_shuffled(void)
-// {
-// 	std::random_device rd;
-// 	std::mt19937 gen(rd());
-// 	std::vector<int> v(42);
-// 	std::iota(v.begin(), v.end(), 0);
-// 	std::shuffle(v.begin(), v.end(), gen);
-	
-// 	if (std::is_same_v<T, int>)
-// 		return v;
-// 	else if (std::is_same_v<T, std::__cxx11::basic_string<char> > )
-// 	{	
-// 		auto iter = v.begin();
-// 		std::uniform_int_distribution<int> i_dist(0, 25);				
-		
-// 		auto make_random_string = [&iter, &i_dist, &gen]()
-// 		{
-// 			size_t len = *iter;
-// 			++iter; 
-// 			std::string str;
-// 			str.reserve(len);
-
-// 			char rand_ch = i_dist(gen);
-// 			str.push_back('A' + rand_ch);
-			
-// 			auto make_random_lowercase = [&i_dist, &gen]()
-// 			{
-// 				char rand_ch = i_dist(gen);
-// 				return ('a' + rand_ch);
-// 			};
-
-// 			std::generate(str.begin() + 1, str.end(), make_random_lowercase);
-
-// 			return str;
-// 		};
-
-// 		std::vector<T> vt(42);
-// 		std::generate(vt.begin(), vt.end(), make_random_string);
-
-// 		return vt;
-// 	}
-// 	else
-// 	{
-// 		std::vector<T> vt(42);
-// 		auto iter = v.begin();
-// 		std::generate(vt.begin(),vt.end(),[&iter](){ T(*iter++); });
-// 		return vt;
-// 	}
-// }
-
+};
