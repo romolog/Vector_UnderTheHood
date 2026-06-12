@@ -7,14 +7,6 @@ The project showcases my current skills in C++, including templates, allocators,
 
 -------
 
-cmake -S . -B build
-cmake --build build
-ctest --test-dir build 				// concise output
-ctest --test-dir build --verbose 	// keeps GTest format
-
-ATTENTION: check MyVector_test.cpp lines 5-59 for more info
-
-
 Implemented features:
 <pre>
 * Exception safety:		RAII storage ensures destructor call for memory allocated objects
@@ -43,7 +35,7 @@ Implemented features:
 git clone https://github.com/romolog/CPP__algorithm__ford-johnson_2025 my_vector;
 cd my_vector;
 cmake -S . -B build;
-
+cmake --build build
 
 ```
 

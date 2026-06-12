@@ -1,6 +1,5 @@
 #include "MyVector.hpp"
 
-#include "MyVectorTestClasses.hpp"
 #include "MyVectorTestFixtures.hpp"
 #include "MyVectorTestFunctions.hpp"
 
