@@ -141,15 +141,14 @@ namespace myvec
 
 
 		constexpr MyVector(MyVector&& move) noexcept : storage_(std::move(move.storage_)) 
-		{ std::cout << "\n\tMyVector Move Ctor\n\n"; }
+		{}
 
 		constexpr MyVector(MyVector&& move, const std::type_identity_t<Allocator>& alloc) noexcept 
 			: storage_(std::move(move.storage_, alloc)) 
-		{std::cout << "\n\tMyVector Move Ctor Alloc\n\n";}
+		{}
 
 		MyVector& operator=(MyVector&& move) 
 		{
-			std::cout << "\n\tMyVector Move Assign\n\n";
 			storage_ = std::move(move.storage_);
 			return *this;
 		}

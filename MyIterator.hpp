@@ -19,6 +19,7 @@ namespace myvec
 
 		protected:
 			Pointer dataPtr_ = nullptr;
+			// MyIterator(Pointer ptr) noexcept : dataPtr_(ptr) {}
 
 		public:
 			using value_type 		= T;

@@ -1,15 +1,78 @@
 #include "MyVector.hpp"
 
+#include <iterator>
+#include <concepts>
 #include <random>
 #include <string>
-#include <vector>
 #include <type_traits>
-#include <concepts>
+#include <vector>
 
 
 // GTEST_LOG_(INFO) << "\n\tCall default ctor, check if size = 0, empty = true\n";
 // EXPECT_NE(t.data(), nullptr); // ASSERT_NE(ptr, nullptr) = stop if fail
 
+
+// asm volatile("" : "+m"(obj) : : "memory");
+	// ^^        ^  ^^^^^^^^   	^   ^^^^^^^
+	// |         |     |        |      |
+	// |         |     |        |   Clobber list
+	// |         |     |      Output list (empty)
+	// |         |   Input/Output operand
+	// |       Output operands
+	// Assembly template (empty)
+// 1. asm volatile
+//     asm - Inline assembly statement
+//     volatile - Prevents the compiler from moving or removing this asm block
+//         Even if it seems useless, it must stay exactly where placed
+// 2. "" - Empty assembly template
+//     No actual assembly instructions are generated
+//     The effect comes entirely from the constraints, not from executed code
+// 3. "+m"(obj) - Input/Output operand
+//     + - Means this is both read and written (input/output)
+//     m - Memory operand (not a register)
+//     (obj) - The variable to treat as memory operand
+// 	 This tells the compiler:
+//     obj is used as an input
+//     obj is modified as an output
+//     The modification happens through memory, not registers
+// 4. Empty output list :
+//     No explicit output operands beyond those in the input/output list
+// 5. "memory" - Memory clobber
+//     Tells the compiler: "This asm block may read/write any memory address"
+//     Forces the compiler to reload all memory values from actual memory
+//     Prevents keeping values in registers across this barrier
+//
+// OPTIONS:
+// // 1. Minimum barrier (only memory clobber)
+// asm volatile("" ::: "memory");
+// // Stops reordering, but may not preserve individual variables
+
+// // 2. Variable-specific barrier (your version)
+// asm volatile("" : "+m"(obj) : : "memory");
+// // Best for forcing operations on specific variable
+
+// // 3. Multiple variables
+// asm volatile("" : "+m"(obj1), "+m"(obj2) : : "memory");
+
+// // 4. With input only (read barrier)
+// asm volatile("" : : "m"(obj) : "memory");
+// // Says: "I read obj", but don't modify it
+
+// // 5. Maximum barrier (force all memory)
+//	//	IMPORTANT: is NOT a superset of the specific operand barrier
+// asm volatile("" : : : "memory");
+// // All memory operations are observable
+template <typename T>
+__attribute__((always_inline)) 
+void compiler_barrier(T& obj) {
+	asm volatile("" : "+m"(obj) : : "memory");
+}
+
+template <typename T>
+__attribute__((always_inline)) 
+void compiler_barrier(T& obj_1, T& obj_2) {
+	asm volatile("" : "+m"(obj_1), "+m"(obj_1) : : "memory");
+}
 
 template<class Vec>
 void TestSizeVector(Vec& t, size_t size)
@@ -72,387 +135,226 @@ void TestSizeValVector(Vec& t, Iter it, Iter end)
 
 };
 
-template <typename T>
-std::vector<T> std_vector42_shuffled(void)
+
+template <typename Iter, typename MyIter>
+	requires std::random_access_iterator<Iter> && std::random_access_iterator<MyIter>
+void TestIteratorRead(Iter v_it, Iter v_end, MyIter mv_it, MyIter mv_end)
 {
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::vector<int> v(42);
-	std::iota(v.begin(), v.end(), 0);
-	std::shuffle(v.begin(), v.end(), gen);
 	
-	if (std::is_same_v<T, int>)
-		return v;
-	else if (std::is_same_v<T, std::__cxx11::basic_string<char> > )
-	{	
-		auto iter = v.begin();
-		std::uniform_int_distribution<int> i_dist(0, 25);				
-		
-		auto make_random_string = [&iter, &i_dist, &gen]()
-		{
-			size_t len = *iter;
-			++iter; 
-			std::string str;
-			str.reserve(len);
+	ASSERT_GE(std::distance(v_it, v_end), 7);
+	EXPECT_EQ(*mv_it, *v_it); // *0
+	EXPECT_TRUE(std::equal(mv_it, mv_end, v_it));
 
-			char rand_ch = i_dist(gen);
-			str.push_back('A' + rand_ch);
-			
-			auto make_random_lowercase = [&i_dist, &gen]()
-			{
-				char rand_ch = i_dist(gen);
-				return ('a' + rand_ch);
-			};
-
-			std::generate(str.begin() + 1, str.end(), make_random_lowercase);
-
-			return str;
-		};
-
-		std::vector<T> vt(42);
-		std::generate(vt.begin(), vt.end(), make_random_string);
-
-		return vt;
-	}
-	else
+	for (auto it = mv_it; it < mv_end; ++it)
 	{
-		std::vector<T> vt(42);
-		auto iter = v.begin();
-		std::generate(vt.begin(),vt.end(),[&iter](){ T(*iter++); });
-		return vt;
+		size_t len = std::distance(it, mv_end);
+		for (size_t i = 0; i < len; ++i)
+			EXPECT_EQ(v_it[i], mv_it[i]); 
 	}
+
+	
+	EXPECT_EQ(mv_it[0], v_it[0]); // *0
+	EXPECT_EQ(mv_it[3], v_it[3]); // *3
+	EXPECT_EQ(mv_it[3], v_it[3]); // *3		
+	EXPECT_EQ(std::distance(mv_it, mv_end), std::distance(v_it, v_end));
+	++mv_it; //1
+	++v_it;
+	EXPECT_EQ(*mv_it, *v_it);
+	EXPECT_EQ(*mv_it++, *v_it++); // 2
+	std::advance(mv_it, 3);	 //5
+	std::advance(v_it, 3);
+	EXPECT_EQ(*mv_it, *v_it);
+	std::advance(mv_it, -2); //3
+	std::advance(v_it, -2);
+	EXPECT_EQ(*mv_it, *v_it);
+	--mv_it; //2
+	--v_it;
+	EXPECT_EQ(*mv_it, *v_it);
+	mv_it += 3; //5
+	v_it += 3;
+	EXPECT_EQ(*mv_it, *v_it);
+	mv_it -= 2; //3
+	v_it -= 2;
+	EXPECT_EQ(*mv_it, *v_it);	
+	EXPECT_EQ(*(mv_it + 3), *(v_it + 3)); // *6
+	EXPECT_EQ(*(1 + mv_it), *(1 + v_it)); // *4	
+	EXPECT_EQ(*(mv_it - 2), *(v_it - 2)); // *1
+	EXPECT_EQ(mv_end - mv_it, v_end - v_it);
+	EXPECT_EQ(mv_end - mv_it, std::distance(mv_it, mv_end));
+	EXPECT_EQ(v_end - v_it, std::distance(v_it, v_end));
+
 }
+
+template <typename Iter, typename MyIter, typename Val>
+	requires std::random_access_iterator<Iter> && std::random_access_iterator<MyIter>
+void TestIteratorWrite(Iter v_it, Iter v_end, MyIter mv_it, MyIter mv_end, Val val)
+{
+	
+	ASSERT_GE(std::distance(v_it, v_end), 7);
+
+	EXPECT_EQ(*mv_it, *v_it); // *0 = 'Hello' / 1
+	*mv_it += val;
+	*v_it += val;
+	EXPECT_EQ(*mv_it, *v_it); // *0 = 'Hello42' / 43
+	++mv_it; //1
+	++v_it;
+	*mv_it += val;
+	*v_it += val;
+	EXPECT_EQ(*mv_it, *v_it);
+	
+	int idx = 3; //4
+	mv_it[idx] += val;
+	v_it[idx] += val;
+	EXPECT_EQ(mv_it[idx], v_it[idx]);
+
+	idx = 0; 
+	mv_it[idx] = *mv_it;
+	v_it[idx] = *v_it;
+	EXPECT_EQ(mv_it[idx], *mv_it);
+	EXPECT_EQ(mv_it[idx], v_it[idx]);
+
+	idx = 2; 
+	mv_it[idx] = *mv_it; // 1 = 3
+	v_it[idx] = *v_it;
+	EXPECT_EQ(mv_it[idx], *mv_it);
+	EXPECT_EQ(mv_it[idx], v_it[idx]);
+
+	idx = -4;
+	mv_end[idx] = *mv_it; // 1 = 4
+	v_end[idx] = *v_it;	
+	EXPECT_EQ(mv_end[idx], *mv_it);
+	EXPECT_EQ(mv_end[idx], v_end[idx]);
+
+	idx = -1;
+	mv_end[idx] = *mv_it; // 1 = 0
+	v_end[idx] = *v_it;	
+	EXPECT_EQ(mv_end[idx], *mv_it);
+	EXPECT_EQ(mv_end[idx], v_end[idx]);
+
+
+}
+
+// #include <vector>
+// #include <atomic>
+// #include <cstring>
+
+// class IterType {
+// public:
+//     int* ptr;
+//     int dummy;
+    
+//     IterType() : ptr(nullptr), dummy(0) {}
+//     IterType(int* p) : ptr(p), dummy(1) {}
+    
+//     IterType& operator=(const IterType& other) {
+//         ptr = other.ptr;
+//         dummy = other.dummy;
+//         // Force observable side effect
+//         asm volatile("" : : "r"(ptr), "r"(dummy) : "memory");
+//         return *this;
+//     }
+// };
+
+// Compiler barrier helper
+// template<typename T>
+// __attribute__((always_inline)) 
+// void compiler_barrier(T& obj) {
+//     asm volatile("" : "+m"(obj) : : "memory");
+// }
+
+// int main() {
+//     std::vector<int> vector = {1, 2, 3};
+    
+//     iter_type it_copy_assign;
+//     iter_type end_copy_assign;
+    
+//     // Force copy assignment to be observable
+//     compiler_barrier(it_copy_assign);
+//     compiler_barrier(end_copy_assign);
+    
+//     it_copy_assign = vector.begin();
+//     end_copy_assign = vector.end();
+    
+//     compiler_barrier(it_copy_assign);
+//     compiler_barrier(end_copy_assign);
+    
+//     // Use the values to prevent dead code elimination
+//     asm volatile("" : : "r"(it_copy_assign.ptr), "r"(end_copy_assign.ptr));
+    
+//     return 0;
+// }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Vec>
-void TestEmptyVector(Vec& t)
-{
-	EXPECT_EQ(t.size(), 0);
-	EXPECT_EQ(t.capacity(), 0);
-	EXPECT_TRUE(t.empty());
-	EXPECT_EQ(t.begin(), t.end());
-	EXPECT_EQ(t.cbegin(), t.cend());
-	EXPECT_EQ(t.rbegin(), t.rend());
-	EXPECT_EQ(t.crbegin(), t.crend());
+// template<class Vec>
+// void TestEmptyVector(Vec& t)
+// {
+// 	EXPECT_EQ(t.size(), 0);
+// 	EXPECT_EQ(t.capacity(), 0);
+// 	EXPECT_TRUE(t.empty());
+// 	EXPECT_EQ(t.begin(), t.end());
+// 	EXPECT_EQ(t.cbegin(), t.cend());
+// 	EXPECT_EQ(t.rbegin(), t.rend());
+// 	EXPECT_EQ(t.crbegin(), t.crend());
 
-	int count = 0;
-	for (auto&& _ : t)
-	{
-		(void)_;
-		++count;
-	}
-	EXPECT_EQ(count, 0);
-};
+// 	int count = 0;
+// 	for (auto&& _ : t)
+// 	{
+// 		(void)_;
+// 		++count;
+// 	}
+// 	EXPECT_EQ(count, 0);
+// };
 
-template <class T>
-void RunEmptyVectorTests (void) 
-{	
-	// VALIDATE TEST ON STD LIB
-	std::vector<T> st;
-	TestEmptyVector(st);
 
-	// EMPTY VECTOR
-	myvec::MyVector<T> t;
-	TestEmptyVector(t);
+// template <typename T>
+// std::vector<T> std_vector42_shuffled(void)
+// {
+// 	std::random_device rd;
+// 	std::mt19937 gen(rd());
+// 	std::vector<int> v(42);
+// 	std::iota(v.begin(), v.end(), 0);
+// 	std::shuffle(v.begin(), v.end(), gen);
+	
+// 	if (std::is_same_v<T, int>)
+// 		return v;
+// 	else if (std::is_same_v<T, std::__cxx11::basic_string<char> > )
+// 	{	
+// 		auto iter = v.begin();
+// 		std::uniform_int_distribution<int> i_dist(0, 25);				
+		
+// 		auto make_random_string = [&iter, &i_dist, &gen]()
+// 		{
+// 			size_t len = *iter;
+// 			++iter; 
+// 			std::string str;
+// 			str.reserve(len);
 
-	// EMPTY VECTOR CONST
-	const myvec::MyVector<T> ct;
-	TestEmptyVector(ct);
-	// ct.clear(); // OK : compile error
+// 			char rand_ch = i_dist(gen);
+// 			str.push_back('A' + rand_ch);
+			
+// 			auto make_random_lowercase = [&i_dist, &gen]()
+// 			{
+// 				char rand_ch = i_dist(gen);
+// 				return ('a' + rand_ch);
+// 			};
 
-	// COPY
-	myvec::MyVector<T> src_mutable_copy;
-	TestEmptyVector(src_mutable_copy);
-	const myvec::MyVector<T> const_copy{src_mutable_copy};
-	TestEmptyVector(const_copy);
+// 			std::generate(str.begin() + 1, str.end(), make_random_lowercase);
 
-	// COPY FROM CONST
-	const myvec::MyVector<T> src_const_copy;
-	TestEmptyVector(src_const_copy);
-	myvec::MyVector<T> mutable_copy{src_const_copy};
-	TestEmptyVector(mutable_copy);
+// 			return str;
+// 		};
 
-	// MOVE
-	myvec::MyVector<T> src_move_mutable;
-	TestEmptyVector(src_move_mutable);
-	myvec::MyVector<T> move{std::move(src_move_mutable)};
-	TestEmptyVector(move);
+// 		std::vector<T> vt(42);
+// 		std::generate(vt.begin(), vt.end(), make_random_string);
 
-	// MOVE(->COPY) FROM CONST
-	const myvec::MyVector<T> src_const_refref;
-	TestEmptyVector(src_const_refref);
-	myvec::MyVector<T> copy_from_const_refref{std::move(src_const_refref)};
-	TestEmptyVector(copy_from_const_refref);
-
-	// COPY ASSIGN
-	myvec::MyVector<T> src_copy_assign;
-	TestEmptyVector(src_copy_assign);	
-	myvec::MyVector<T> copy_assign;
-	TestEmptyVector(copy_assign);
-	copy_assign = src_copy_assign;
-	TestEmptyVector(copy_assign);
-
-	// COPY ASSIGN FROM CONST
-	const myvec::MyVector<T> src_const_copy_assign;
-	TestEmptyVector(src_const_copy_assign);	
-	myvec::MyVector<T> assign_copy_from_const;
-	TestEmptyVector(assign_copy_from_const);
-	assign_copy_from_const = src_const_copy_assign;
-	TestEmptyVector(assign_copy_from_const);
-
-	// COPY ASSIGN SELF
-	myvec::MyVector<T> copy_self;
-	TestEmptyVector(copy_self);
-	copy_self = copy_self;
-	TestEmptyVector(copy_self);
-
-	// MOVE ASSIGN
-	myvec::MyVector<T> src_move_assign;
-	TestEmptyVector(src_move_assign);	
-	myvec::MyVector<T> move_assign;
-	TestEmptyVector(move_assign);
-	move_assign = std::move(src_move_assign);
-	TestEmptyVector(move_assign);
-
-	// MOVE ASSIGN SELF
-	myvec::MyVector<T> move_self;
-	TestEmptyVector(move_self);
-	move_self = std::move(move_self);
-	TestEmptyVector(move_self);
-}
-
-template <class T>
-void RunZeroVectorTests (void) 
-{	
-	// VALIDATE TEST ON STD LIB
-	std::vector<T> st(0);
-	TestEmptyVector(st);
-
-	// EMPTY VECTOR
-	myvec::MyVector<T> t(0);
-	TestEmptyVector(t);
-
-	// EMPTY VECTOR CONST
-	const myvec::MyVector<T> ct(0);
-	TestEmptyVector(ct);
-	// ct.clear(); // OK : compile error
-
-	// COPY
-	myvec::MyVector<T> src_mutable_copy(0);
-	TestEmptyVector(src_mutable_copy);
-	const myvec::MyVector<T> const_copy{src_mutable_copy};
-	TestEmptyVector(const_copy);
-
-	// COPY FROM CONST
-	const myvec::MyVector<T> src_const_copy(0);
-	TestEmptyVector(src_const_copy);
-	myvec::MyVector<T> mutable_copy{src_const_copy};
-	TestEmptyVector(mutable_copy);
-
-	// MOVE
-	myvec::MyVector<T> src_move_mutable(0);
-	TestEmptyVector(src_move_mutable);
-	myvec::MyVector<T> move{std::move(src_move_mutable)};
-	TestEmptyVector(move);
-
-	// MOVE(->COPY) FROM CONST
-	const myvec::MyVector<T> src_const_refref(0);
-	TestEmptyVector(src_const_refref);
-	myvec::MyVector<T> copy_from_const_refref{std::move(src_const_refref)};
-	TestEmptyVector(copy_from_const_refref);
-
-	// COPY ASSIGN
-	myvec::MyVector<T> src_copy_assign(0);
-	TestEmptyVector(src_copy_assign);	
-	myvec::MyVector<T> copy_assign(0);
-	TestEmptyVector(copy_assign);
-	copy_assign = src_copy_assign;
-	TestEmptyVector(copy_assign);
-
-	// COPY ASSIGN FROM CONST
-	const myvec::MyVector<T> src_const_copy_assign(0);
-	TestEmptyVector(src_const_copy_assign);	
-	myvec::MyVector<T> assign_copy_from_const(0);
-	TestEmptyVector(assign_copy_from_const);
-	assign_copy_from_const = src_const_copy_assign;
-	TestEmptyVector(assign_copy_from_const);
-
-	// COPY ASSIGN SELF
-	myvec::MyVector<T> copy_self(0);
-	TestEmptyVector(copy_self);
-	copy_self = copy_self;
-	TestEmptyVector(copy_self);
-
-	// MOVE ASSIGN
-	myvec::MyVector<T> src_move_assign(0);
-	TestEmptyVector(src_move_assign);	
-	myvec::MyVector<T> move_assign(0);
-	TestEmptyVector(move_assign);
-	move_assign = std::move(src_move_assign);
-	TestEmptyVector(move_assign);
-
-	// MOVE ASSIGN SELF
-	myvec::MyVector<T> move_self(0);
-	TestEmptyVector(move_self);
-	move_self = std::move(move_self);
-	TestEmptyVector(move_self);
-}
-
-template <class T>
-void RunSizeVectorTests (size_t size) 
-{	
-	ASSERT_GT(size, 0);
-
-	// VALIDATE TEST ON STD LIB
-	std::vector<T> st(size);
-	TestSizeVector(st, size);
-
-	// EMPTY VECTOR
-	myvec::MyVector<T> t(size);
-	TestSizeVector(t, size);
-
-	// EMPTY VECTOR CONST
-	const myvec::MyVector<T> ct(size);
-	TestSizeVector(ct, size);
-	// ct.clear(); // OK : compile error
-
-	// COPY
-	myvec::MyVector<T> src_mutable_copy(size);
-	TestSizeVector(src_mutable_copy, size);
-	const myvec::MyVector<T> const_copy{src_mutable_copy};
-	TestSizeVector(const_copy, size);
-
-	// COPY FROM CONST
-	const myvec::MyVector<T> src_const_copy(size);
-	TestSizeVector(src_const_copy, size);
-	myvec::MyVector<T> mutable_copy{src_const_copy};
-	TestSizeVector(mutable_copy, size);
-
-	// MOVE
-	myvec::MyVector<T> src_move_mutable(size);
-	TestSizeVector(src_move_mutable, size);
-	myvec::MyVector<T> move{std::move(src_move_mutable)};
-	TestSizeVector(move, size);
-
-	// MOVE(->COPY) FROM CONST
-	const myvec::MyVector<T> src_const_refref(size);
-	TestSizeVector(src_const_refref, size);
-	myvec::MyVector<T> copy_from_const_refref{std::move(src_const_refref)};
-	TestSizeVector(copy_from_const_refref, size);
-
-	// COPY ASSIGN
-	myvec::MyVector<T> src_copy_assign(size);
-	TestSizeVector(src_copy_assign, size);	
-	myvec::MyVector<T> copy_assign(size);
-	TestSizeVector(copy_assign, size);
-	copy_assign = src_copy_assign;
-	TestSizeVector(copy_assign, size);
-
-	// COPY ASSIGN FROM CONST
-	const myvec::MyVector<T> src_const_copy_assign(size);
-	TestSizeVector(src_const_copy_assign, size);	
-	myvec::MyVector<T> assign_copy_from_const(size);
-	TestSizeVector(assign_copy_from_const, size);
-	assign_copy_from_const = src_const_copy_assign;
-	TestSizeVector(assign_copy_from_const, size);
-
-	// COPY ASSIGN SELF
-	myvec::MyVector<T> copy_self(size);
-	TestSizeVector(copy_self, size);
-	copy_self = copy_self;
-	TestSizeVector(copy_self, size);
-
-	// MOVE ASSIGN
-	myvec::MyVector<T> src_move_assign(size);
-	TestSizeVector(src_move_assign, size);	
-	myvec::MyVector<T> move_assign(size);
-	TestSizeVector(move_assign, size);
-	move_assign = std::move(src_move_assign);
-	TestSizeVector(move_assign, size);
-
-	// MOVE ASSIGN SELF
-	myvec::MyVector<T> move_self(size);
-	TestSizeVector(move_self, size);
-	move_self = std::move(move_self);
-	TestSizeVector(move_self, size);
-}
-
-template <class T>
-void RunSizeValVectorTests (size_t size, T value) 
-{	
-	// VALIDATE TEST ON STD LIB
-	std::vector<T> st(size, value);
-	TestSizeValVector(st, size, value);
-
-	// EMPTY VECTOR
-	myvec::MyVector<T> t(size, value);
-	TestSizeValVector(t, size, value);
-
-	// EMPTY VECTOR CONST
-	const myvec::MyVector<T> ct(size, value);
-	TestSizeValVector(ct, size, value);
-	// ct.clear(); // OK : compile error
-
-	// COPY
-	myvec::MyVector<T> src_mutable_copy(size, value);
-	TestSizeValVector(src_mutable_copy, size, value);
-	const myvec::MyVector<T> const_copy{src_mutable_copy};
-	TestSizeValVector(const_copy, size, value);
-
-	// COPY FROM CONST
-	const myvec::MyVector<T> src_const_copy(size, value);
-	TestSizeValVector(src_const_copy, size, value);
-	myvec::MyVector<T> mutable_copy{src_const_copy};
-	TestSizeValVector(mutable_copy, size, value);
-
-	// MOVE
-	myvec::MyVector<T> src_move_mutable(size, value);
-	TestSizeValVector(src_move_mutable, size, value);
-	myvec::MyVector<T> move{std::move(src_move_mutable)};
-	TestSizeValVector(move, size, value);
-
-	// MOVE(->COPY) FROM CONST
-	const myvec::MyVector<T> src_const_refref(size, value);
-	TestSizeValVector(src_const_refref, size, value);
-	myvec::MyVector<T> copy_from_const_refref{std::move(src_const_refref)};
-	TestSizeValVector(copy_from_const_refref, size, value);
-
-	// COPY ASSIGN
-	myvec::MyVector<T> src_copy_assign(size, value);
-	TestSizeValVector(src_copy_assign, size, value);	
-	myvec::MyVector<T> copy_assign(size, value);
-	TestSizeValVector(copy_assign, size, value);
-	copy_assign = src_copy_assign;
-	TestSizeValVector(copy_assign, size, value);
-
-	// COPY ASSIGN FROM CONST
-	const myvec::MyVector<T> src_const_copy_assign(size, value);
-	TestSizeValVector(src_const_copy_assign, size, value);	
-	myvec::MyVector<T> assign_copy_from_const(size, value);
-	TestSizeValVector(assign_copy_from_const, size, value);
-	assign_copy_from_const = src_const_copy_assign;
-	TestSizeValVector(assign_copy_from_const, size, value);
-
-	// COPY ASSIGN SELF
-	myvec::MyVector<T> copy_self(size, value);
-	TestSizeValVector(copy_self, size, value);
-	copy_self = copy_self;
-	TestSizeValVector(copy_self, size, value);
-
-	// MOVE ASSIGN
-	myvec::MyVector<T> src_move_assign(size, value);
-	TestSizeValVector(src_move_assign, size, value);	
-	myvec::MyVector<T> move_assign(size, value);
-	TestSizeValVector(move_assign, size, value);
-	move_assign = std::move(src_move_assign);
-	TestSizeValVector(move_assign, size, value);
-
-	// MOVE ASSIGN SELF
-	myvec::MyVector<T> move_self(size, value);
-	TestSizeValVector(move_self, size, value);
-	move_self = std::move(move_self);
-	TestSizeValVector(move_self, size, value);
-}
-
+// 		return vt;
+// 	}
+// 	else
+// 	{
+// 		std::vector<T> vt(42);
+// 		auto iter = v.begin();
+// 		std::generate(vt.begin(),vt.end(),[&iter](){ T(*iter++); });
+// 		return vt;
+// 	}
+// }
 
