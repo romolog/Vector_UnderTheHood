@@ -6,6 +6,7 @@
 #include <iterator>
 #include <type_traits>
 
+
 namespace myvec
 {
 	template <typename T, typename Allocator>
@@ -14,7 +15,6 @@ namespace myvec
 	template <typename T, typename Pointer = T*, typename Reference = T&>
 	class MyIterator final
 	{
-
 		protected:
 			Pointer dataPtr_ = nullptr;
 
@@ -35,10 +35,14 @@ namespace myvec
 			MyIterator(const MyIterator& copy) = default;
 			MyIterator& operator=(const MyIterator& copy) = default;
 
+			auto operator<=>(const MyIterator& second) const noexcept = default; 
+
 			reference 			operator*	() const noexcept { return *dataPtr_;}
+
 			reference			operator[]	(difference_type idx) const noexcept { return *(dataPtr_ + idx);}
 
 			MyIterator&			operator++	() noexcept { ++dataPtr_; return *this; }
+
 			MyIterator			operator++	(int) noexcept 
 			{
 				MyIterator prev(*this);
@@ -49,8 +53,6 @@ namespace myvec
 			MyIterator&			operator--	() noexcept { --dataPtr_; return *this; }
 
 			MyIterator			operator--	(int) noexcept { return MyIterator(dataPtr_--); }
-
-			auto operator<=>(const MyIterator& second) const noexcept = default; 
 
 			MyIterator&			operator+=	(const difference_type shift) noexcept
 			{	
@@ -79,7 +81,6 @@ namespace myvec
 			}
 			
 			difference_type 	operator-	(const MyIterator& rhs) const noexcept { return (dataPtr_ - rhs.dataPtr_); }
-	};
-} // namespace myvec
-
+	}; // MyIterator ends
+} // namespace myvec ends
 

@@ -1,15 +1,18 @@
 #include "MyVector.hpp"
 
+#include "MyVectorTestAllocators.hpp"
+#include "MyVectorTestClasses.hpp"
 #include "MyVectorTestFixtures.hpp"
 #include "MyVectorTestFunctions.hpp"
 
 #include <algorithm>
+#include <concepts>
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
+#include <gmock/gmock.h> 
+#include <numeric>
 #include <random>
 #include <string>
 #include <type_traits>
-#include <concepts>
 #include <vector>
 
 
@@ -19,11 +22,11 @@ using TestTypes = ::testing::Types	<
 									>;
 
 
-TYPED_TEST_SUITE(TT_1, TestTypes);
+TYPED_TEST_SUITE(Regular_, TestTypes);
 
 // Ctor Default = Empty //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_Default___) 
+TYPED_TEST(Regular_, Ctor_Default___) 
 {
 	myvec::MyVector<TypeParam> mv;
 	std::vector<TypeParam> v;
@@ -44,9 +47,38 @@ TYPED_TEST(TT_1, Ctor_Default___)
 	EXPECT_EQ(cv.data(), nullptr);
 }
 
+TEST(Special_, Ctor_Default___Element_Ctor_Not_Called___)
+{
+	EXPECT_NO_THROW({ myvec::MyVector< myvec::AnyCtorAssignThrow > mv; });
+	EXPECT_NO_THROW({ const myvec::MyVector< myvec::AnyCtorAssignThrow > cmv; });
+	EXPECT_NO_THROW({ std::vector< myvec::AnyCtorAssignThrow > v; });
+	EXPECT_NO_THROW({ const std::vector< myvec::AnyCtorAssignThrow > cv; });	
+}
+
+TEST(Special_, Ctor_Default___No_Heap_Allocation___)
+{
+	using Alloc = myvec::AllocCount<std::string>;
+	Alloc alloc_counter; 
+	alloc_counter.reset();
+	myvec::MyVector<std::string, Alloc> mv(alloc_counter);
+	EXPECT_EQ(alloc_counter.allocations(), 0);
+
+	alloc_counter.reset(); 
+	const myvec::MyVector<std::string, Alloc> cmv(alloc_counter);
+	EXPECT_EQ(alloc_counter.allocations(), 0);
+
+	alloc_counter.reset(); 
+	std::vector<std::string, Alloc> v(alloc_counter);
+	EXPECT_EQ(alloc_counter.allocations(), 0);
+
+	alloc_counter.reset(); 
+	const std::vector<std::string, Alloc> cv(alloc_counter);
+	EXPECT_EQ(alloc_counter.allocations(), 0);
+}
+
 // Ctor Size 0 = Empty //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_SizeZero___) 
+TYPED_TEST(Regular_, Ctor_SizeZero___) 
 {
 	size_t size = 0;
 
@@ -75,9 +107,38 @@ TYPED_TEST(TT_1, Ctor_SizeZero___)
 	EXPECT_EQ(cv.capacity(), 0);
 }
 
+TEST(Special_, Ctor_SizeZero___Element_Ctor_Not_Called___)
+{
+	EXPECT_NO_THROW({ myvec::MyVector< myvec::AnyCtorAssignThrow > mv(0); });
+	EXPECT_NO_THROW({ const myvec::MyVector< myvec::AnyCtorAssignThrow > cmv(0); });
+	EXPECT_NO_THROW({ std::vector< myvec::AnyCtorAssignThrow > v(0); });
+	EXPECT_NO_THROW({ const std::vector< myvec::AnyCtorAssignThrow > cv(0); });	
+}
+
+TEST(Special_, Ctor_SizeZero___No_Heap_Allocation___)
+{
+	using Alloc = myvec::AllocCount<std::string>;
+	Alloc alloc_counter;
+	alloc_counter.reset(); 
+	myvec::MyVector<std::string, Alloc> mv(0, alloc_counter);
+	EXPECT_EQ(alloc_counter.allocations(), 0);
+
+	alloc_counter.reset(); 
+	const myvec::MyVector<std::string, Alloc> cmv(0, alloc_counter);
+	EXPECT_EQ(alloc_counter.allocations(), 0);
+
+	alloc_counter.reset(); 
+	std::vector<std::string, Alloc> v(0, alloc_counter);
+	EXPECT_EQ(alloc_counter.allocations(), 0);
+
+	alloc_counter.reset(); 
+	const std::vector<std::string, Alloc> cv(0, alloc_counter);
+	EXPECT_EQ(alloc_counter.allocations(), 0);
+}
+
 // Ctor Size 1 //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_SizeSingle___) 
+TYPED_TEST(Regular_, Ctor_SizeSingle___) 
 {
 	size_t size = 1;
 
@@ -94,9 +155,34 @@ TYPED_TEST(TT_1, Ctor_SizeSingle___)
 	TestSizeVector(cv, size);
 }
 
+TEST(Special_, Ctor_SizeSingle___Element_Ctor_Called_Times_Single___)
+{
+	size_t size = 1;
+
+	myvec::CtorAssignCounter::reset();
+	myvec::MyVector< myvec::CtorAssignCounter > mv(size);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+	EXPECT_EQ(myvec::CtorAssignCounter::default_ctor_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const myvec::MyVector< myvec::CtorAssignCounter > cmv(size);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+	EXPECT_EQ(myvec::CtorAssignCounter::default_ctor_, size);
+
+	myvec::CtorAssignCounter::reset();
+	std::vector< myvec::CtorAssignCounter > v(size);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+	EXPECT_EQ(myvec::CtorAssignCounter::default_ctor_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const std::vector< myvec::CtorAssignCounter > cv(size);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+	EXPECT_EQ(myvec::CtorAssignCounter::default_ctor_, size);
+}
+
 // Ctor Size 42 //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_SizeMany___) 
+TYPED_TEST(Regular_, Ctor_Size_Many___) 
 {
 	size_t size = 42;
 
@@ -113,9 +199,35 @@ TYPED_TEST(TT_1, Ctor_SizeMany___)
 	TestSizeVector(cv, size);
 }
 
+TEST(Special_, Ctor_Size_Many___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 42;
+
+	myvec::CtorAssignCounter::reset();
+	myvec::MyVector< myvec::CtorAssignCounter > mv(size);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+	EXPECT_EQ(myvec::CtorAssignCounter::default_ctor_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const myvec::MyVector< myvec::CtorAssignCounter > cmv(size);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+	EXPECT_EQ(myvec::CtorAssignCounter::default_ctor_, size);
+
+	myvec::CtorAssignCounter::reset();
+	std::vector< myvec::CtorAssignCounter > v(size);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+	EXPECT_EQ(myvec::CtorAssignCounter::default_ctor_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const std::vector< myvec::CtorAssignCounter > cv(size);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+	EXPECT_EQ(myvec::CtorAssignCounter::default_ctor_, size);
+
+}
+
 // Ctor Size 0 Value 42 = Empty //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_SizeZero_Value__) 
+TYPED_TEST(Regular_, Ctor_Size_Zero_InitValue__) 
 {
 	size_t size = 0;
 	TypeParam val = this->value(42);
@@ -145,10 +257,41 @@ TYPED_TEST(TT_1, Ctor_SizeZero_Value__)
 	EXPECT_EQ(cv.capacity(), 0);
 }
 
+TEST(Special_, Ctor_Size_Zero_InitValue__Element_Ctor_Not_Called___)
+{
+	// special Ctor called to successfully instanciate an object
+	myvec::AnyCtorAssignThrow init_val (37, 73); 
+
+	EXPECT_NO_THROW({ myvec::MyVector< myvec::AnyCtorAssignThrow > mv(0, init_val); });
+	EXPECT_NO_THROW({ const myvec::MyVector< myvec::AnyCtorAssignThrow > cmv(0, init_val); });
+	EXPECT_NO_THROW({ std::vector< myvec::AnyCtorAssignThrow > v(0, init_val); });
+	EXPECT_NO_THROW({ const std::vector< myvec::AnyCtorAssignThrow > cv(0, init_val); });	
+}
+
+TEST(Special_, Ctor_Size_Zero_InitValue__No_Heap_Allocation___)
+{
+	using Alloc = myvec::AllocCount<std::string>;
+	Alloc alloc_counter;
+	alloc_counter.reset(); 
+	myvec::MyVector<std::string, Alloc> mv(0, "init_string");
+	EXPECT_EQ(alloc_counter.allocations(), 0);
+
+	alloc_counter.reset(); 
+	const myvec::MyVector<std::string, Alloc> cmv(0, "init_string");
+	EXPECT_EQ(alloc_counter.allocations(), 0);
+
+	alloc_counter.reset(); 
+	std::vector<std::string, Alloc> v(0, "init_string");
+	EXPECT_EQ(alloc_counter.allocations(), 0);
+
+	alloc_counter.reset(); 
+	const std::vector<std::string, Alloc> cv(0, "init_string");
+	EXPECT_EQ(alloc_counter.allocations(), 0);
+}
 
 // Ctor Size 1 Value 42 //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_SizeSingle_Value__) 
+TYPED_TEST(Regular_, Ctor_SizeSingle_InitValue__) 
 {
 	size_t size = 1;
 	TypeParam val = this->value(42);
@@ -166,9 +309,33 @@ TYPED_TEST(TT_1, Ctor_SizeSingle_Value__)
 	TestSizeValVector(cv, size, val);
 }
 
+TEST(Special_, Ctor_SizeSingle_InitValue__Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 1;
+	myvec::CtorAssignCounter val(37, 73);
+
+	myvec::CtorAssignCounter::reset();
+	myvec::MyVector< myvec::CtorAssignCounter > mv(size, val);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const myvec::MyVector< myvec::CtorAssignCounter > cmv(size, val);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	std::vector< myvec::CtorAssignCounter > v(size, val);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const std::vector< myvec::CtorAssignCounter > cv(size, val);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+}
+
+
 // Ctor SizeMany Value 42 //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_SizeMany_Value__) 
+TYPED_TEST(Regular_, Ctor_SizeMany_InitValue__) 
 {
 	size_t size = 37;
 	TypeParam val = this->value(42);
@@ -186,9 +353,32 @@ TYPED_TEST(TT_1, Ctor_SizeMany_Value__)
 	TestSizeValVector(cv, size, val);
 }
 
+TEST(Special_, Ctor_SizeMany_InitValue___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 42;
+	myvec::CtorAssignCounter val(37, 73);
+
+	myvec::CtorAssignCounter::reset();
+	myvec::MyVector< myvec::CtorAssignCounter > mv(size, val);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const myvec::MyVector< myvec::CtorAssignCounter > cmv(size, val);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	std::vector< myvec::CtorAssignCounter > v(size, val);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const std::vector< myvec::CtorAssignCounter > cv(size, val);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+}
+
+
 // Ctor Size Many Value 42 : Size alias Value //-----------------------------------------------------------------
 
-TEST(Special, Ctor_SizeMany_ValueAlias___) 
+TEST(Special_, Ctor_SizeMany_ValueAlias___) 
 {
 	using TypeParam = size_t;
 	TypeParam size = 37;
@@ -209,7 +399,7 @@ TEST(Special, Ctor_SizeMany_ValueAlias___)
 
 // Ctor InputIter from Empty //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_InputIter_Empty___) 
+TYPED_TEST(Regular_, Ctor_InputIter_Empty___) 
 {
 	std::vector<TypeParam> src;
 
@@ -238,9 +428,36 @@ TYPED_TEST(TT_1, Ctor_InputIter_Empty___)
 	EXPECT_EQ(cv.data(), nullptr);
 }
 
+TEST(Special_, Ctor_InputIter_Empty___Element_Ctor_Called_Times_Size___)
+{
+
+	std::vector< myvec::CtorAssignCounter > src;
+	size_t size = src.size();
+
+	auto it = src.begin();
+	auto end = src.end();
+	compiler_optimization_barrier(it, end);
+	
+	myvec::CtorAssignCounter::reset();
+	myvec::MyVector< myvec::CtorAssignCounter > mv(it, end);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	std::vector< myvec::CtorAssignCounter > v(it, end);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const myvec::MyVector< myvec::CtorAssignCounter > cmv(src.begin(), src.end());
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const std::vector< myvec::CtorAssignCounter > cv(src.begin(), src.end());
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+}
+
 // Ctor InputIter from Size 1 //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_InputIter_SizeSingle___) 
+TYPED_TEST(Regular_, Ctor_InputIter_SizeSingle___) 
 {
 	size_t size = 1;
 	TypeParam val = this->value(42);
@@ -265,9 +482,35 @@ TYPED_TEST(TT_1, Ctor_InputIter_SizeSingle___)
 	TestSizeValVector(cv, size, val);
 }
 
+TEST(Special_, Ctor_InputIter_SizeSingle___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 1;
+	std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+
+	auto it = src.begin();
+	auto end = src.end();
+	compiler_optimization_barrier(it, end);
+	
+	myvec::CtorAssignCounter::reset();
+	myvec::MyVector< myvec::CtorAssignCounter > mv(it, end);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	std::vector< myvec::CtorAssignCounter > v(it, end);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const myvec::MyVector< myvec::CtorAssignCounter > cmv(src.begin(), src.end());
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const std::vector< myvec::CtorAssignCounter > cv(src.begin(), src.end());
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+}
+
 // Ctor InputIter from Many //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_InputIter_Many___) 
+TYPED_TEST(Regular_, Ctor_InputIter_Many___) 
 {
 	std::vector<TypeParam> src = this->std_vector_size42();
 
@@ -297,9 +540,35 @@ TYPED_TEST(TT_1, Ctor_InputIter_Many___)
 	TestSizeValVector(cmv, v.begin(), v.end());
 }
 
+TEST(Special_, Ctor_InputIter_SizeMany___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 42;
+	std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+
+	auto it = src.begin();
+	auto end = src.end();
+	compiler_optimization_barrier(it, end);
+	
+	myvec::CtorAssignCounter::reset();
+	myvec::MyVector< myvec::CtorAssignCounter > mv(it, end);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	std::vector< myvec::CtorAssignCounter > v(it, end);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const myvec::MyVector< myvec::CtorAssignCounter > cmv(src.begin(), src.end());
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const std::vector< myvec::CtorAssignCounter > cv(src.begin(), src.end());
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+}
+
 // Ctor Const InputIter from Many //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_Const_InputIter_Many___) 
+TYPED_TEST(Regular_, Ctor_Const_InputIter_Many___) 
 {
 	const std::vector<TypeParam> src = this->std_vector_size42();
 
@@ -323,10 +592,9 @@ TYPED_TEST(TT_1, Ctor_Const_InputIter_Many___)
 
 }
 
-
 // Ctor Copy from Empty //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_Copy_Empty___) 
+TYPED_TEST(Regular_, Ctor_Copy_Empty___) 
 {
 	const myvec::MyVector<TypeParam> msrc;
 	const std::vector<TypeParam> src;
@@ -346,11 +614,38 @@ TYPED_TEST(TT_1, Ctor_Copy_Empty___)
 
 	TestSizeValVector(cmv);
 	TestSizeValVector(cv);
+}
+
+
+TEST(Special_, Ctor_Copy_Empty___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 0;
+	const myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+	const std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+
+	compiler_optimization_barrier(msrc, src);
+
+	myvec::CtorAssignCounter::reset();	
+	myvec::MyVector< myvec::CtorAssignCounter > mv(msrc);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	std::vector< myvec::CtorAssignCounter > v(src);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();	
+	const myvec::MyVector< myvec::CtorAssignCounter > cmv(msrc);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const std::vector< myvec::CtorAssignCounter > cv(src);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);	
+
 }
 
 // Ctor Copy from Single //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_Copy_Single___) 
+TYPED_TEST(Regular_, Ctor_CopySingle___) 
 {
 	TypeParam val = this->value(42);
 	std::initializer_list<TypeParam> init_list = {val};
@@ -373,13 +668,49 @@ TYPED_TEST(TT_1, Ctor_Copy_Single___)
 	
 	TestSizeValVector(cmv, init_list.begin(), init_list.end());
 	TestSizeValVector(cv, init_list.begin(), init_list.end());
+}
+
+TEST(Special_, Ctor_CopySingle___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 1;
+	const myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+	const std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+
+	compiler_optimization_barrier(msrc, src);
+
+	myvec::CtorAssignCounter::reset();	
+	myvec::MyVector< myvec::CtorAssignCounter > mv(msrc);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	std::vector< myvec::CtorAssignCounter > v(src);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();	
+	const myvec::MyVector< myvec::CtorAssignCounter > cmv(msrc);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+
+	myvec::CtorAssignCounter::reset();
+	const std::vector< myvec::CtorAssignCounter > cv(src);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);	
+
 }
 
 // Ctor Copy from Many //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_Copy_Many___) 
+TYPED_TEST(Regular_, Ctor_CopyMany___) 
 {
-	std::initializer_list<TypeParam> init_list = this->std_init_list_7();
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
+
+
 	const myvec::MyVector<TypeParam> msrc {init_list};
 	const std::vector<TypeParam> src {init_list};
 
@@ -400,33 +731,108 @@ TYPED_TEST(TT_1, Ctor_Copy_Many___)
 	TestSizeValVector(cv, init_list.begin(), init_list.end());
 }
 
+TEST(Special_, Ctor_CopyMany___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 42;
+	const myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+	const std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+
+	compiler_optimization_barrier(msrc, src);
+
+	myvec::CtorAssignCounter::reset();	
+	myvec::MyVector< myvec::CtorAssignCounter > mv(msrc);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+	EXPECT_EQ(myvec::CtorAssignCounter::move_ctor_, 0);
+	EXPECT_EQ(myvec::CtorAssignCounter::move_assign_, 0);
+
+	myvec::CtorAssignCounter::reset();
+	std::vector< myvec::CtorAssignCounter > v(src);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+	EXPECT_EQ(myvec::CtorAssignCounter::move_ctor_, 0);
+	EXPECT_EQ(myvec::CtorAssignCounter::move_assign_, 0);
+
+	myvec::CtorAssignCounter::reset();	
+	const myvec::MyVector< myvec::CtorAssignCounter > cmv(msrc);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+	EXPECT_EQ(myvec::CtorAssignCounter::move_ctor_, 0);
+	EXPECT_EQ(myvec::CtorAssignCounter::move_assign_, 0);
+
+	myvec::CtorAssignCounter::reset();
+	const std::vector< myvec::CtorAssignCounter > cv(src);
+	EXPECT_EQ(myvec::CtorAssignCounter::total_, size);
+	EXPECT_EQ(myvec::CtorAssignCounter::move_ctor_, 0);
+	EXPECT_EQ(myvec::CtorAssignCounter::move_assign_, 0);	
+}
+
 // Ctor Move from Empty //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_Move_Empty___) 
+TYPED_TEST(Regular_, Ctor_MoveEmpty___) 
 {
-	const myvec::MyVector<TypeParam> msrc;
-	const std::vector<TypeParam> src;
+	{
+		const myvec::MyVector<TypeParam> msrc;
+		const std::vector<TypeParam> src;
 
-	compiler_optimization_barrier(msrc, src);
-	myvec::MyVector<TypeParam> mv(std::move(msrc));
-	std::vector<TypeParam> v(std::move(src));
-	compiler_optimization_barrier(mv, v);
+		compiler_optimization_barrier(msrc, src);
+		myvec::MyVector<TypeParam> mv(std::move(msrc));
+		std::vector<TypeParam> v(std::move(src));
+		compiler_optimization_barrier(mv, v);
 
-	TestSizeValVector(mv);
-	TestSizeValVector(v);
+		TestSizeValVector(mv);
+		TestSizeValVector(v);
+	}
 	
-	compiler_optimization_barrier(msrc, src);
-	const myvec::MyVector<TypeParam> cmv(std::move(msrc));
-	const std::vector<TypeParam> cv(std::move(src));
-	compiler_optimization_barrier(cmv, cv);
+	{
+		const myvec::MyVector<TypeParam> msrc;
+		const std::vector<TypeParam> src;
 
-	TestSizeValVector(cmv);
-	TestSizeValVector(cv);
+		compiler_optimization_barrier(msrc, src);
+		const myvec::MyVector<TypeParam> cmv(std::move(msrc));
+		const std::vector<TypeParam> cv(std::move(src));
+		compiler_optimization_barrier(cmv, cv);
+	
+		TestSizeValVector(cmv);
+		TestSizeValVector(cv);
+	}
+}
+
+TEST(Special_, Ctor_MoveEmpty___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 42;
+	size_t expected = 0;
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+	
+		compiler_optimization_barrier(msrc, src);
+	
+		myvec::CtorAssignCounter::reset();	
+		myvec::MyVector< myvec::CtorAssignCounter > mv(std::move(msrc));
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	
+		myvec::CtorAssignCounter::reset();
+		std::vector< myvec::CtorAssignCounter > v(std::move(src));
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	}
+
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+
+		compiler_optimization_barrier(msrc, src);
+
+		myvec::CtorAssignCounter::reset();	
+		const myvec::MyVector< myvec::CtorAssignCounter > cmv(std::move(msrc));
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	
+		myvec::CtorAssignCounter::reset();
+		const std::vector< myvec::CtorAssignCounter > cv(std::move(src));
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	}
 }
 
 // Ctor Move from Single //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_Move_Single___) 
+TYPED_TEST(Regular_, Ctor_MoveSingle___) 
 {
 	TypeParam val = this->value(42);
 	std::initializer_list<TypeParam> init_list = {val};
@@ -450,11 +856,56 @@ TYPED_TEST(TT_1, Ctor_Move_Single___)
 	TestSizeValVector(cv, init_list.begin(), init_list.end());
 }
 
+TEST(Special_, Ctor_MoveSingle___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 42;
+	size_t expected = 0;
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+	
+		compiler_optimization_barrier(msrc, src);
+	
+		myvec::CtorAssignCounter::reset();	
+		myvec::MyVector< myvec::CtorAssignCounter > mv(std::move(msrc));
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	
+		myvec::CtorAssignCounter::reset();
+		std::vector< myvec::CtorAssignCounter > v(std::move(src));
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	}
+
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+
+		compiler_optimization_barrier(msrc, src);
+
+		myvec::CtorAssignCounter::reset();	
+		const myvec::MyVector< myvec::CtorAssignCounter > cmv(std::move(msrc));
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	
+		myvec::CtorAssignCounter::reset();
+		const std::vector< myvec::CtorAssignCounter > cv(std::move(src));
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	}
+}
+
+
 // Ctor Move from Many //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_Move_Many___) 
+TYPED_TEST(Regular_, Ctor_Move_Many___) 
 {
-	std::initializer_list<TypeParam> init_list = this->std_init_list_7();
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
+
 	const myvec::MyVector<TypeParam> msrc {init_list};
 	const std::vector<TypeParam> src {init_list};
 
@@ -475,10 +926,44 @@ TYPED_TEST(TT_1, Ctor_Move_Many___)
 	TestSizeValVector(cv, init_list.begin(), init_list.end());
 }
 
+TEST(Special_, Ctor_MoveMany___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 42;
+	size_t expected = 0;
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+	
+		compiler_optimization_barrier(msrc, src);
+	
+		myvec::CtorAssignCounter::reset();	
+		myvec::MyVector< myvec::CtorAssignCounter > mv(std::move(msrc));
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	
+		myvec::CtorAssignCounter::reset();
+		std::vector< myvec::CtorAssignCounter > v(std::move(src));
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	}
+
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+
+		compiler_optimization_barrier(msrc, src);
+
+		myvec::CtorAssignCounter::reset();	
+		const myvec::MyVector< myvec::CtorAssignCounter > cmv(std::move(msrc));
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	
+		myvec::CtorAssignCounter::reset();
+		const std::vector< myvec::CtorAssignCounter > cv(std::move(src));
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	}
+}
 
 // Ctor Initializer list Empty //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_InitializerList_SizeZero___) 
+TYPED_TEST(Regular_, Ctor_InitializerList_SizeZero___) 
 {
 	std::initializer_list<TypeParam> init_list = {};
 
@@ -499,9 +984,37 @@ TYPED_TEST(TT_1, Ctor_InitializerList_SizeZero___)
 	TestSizeValVector(cv);
 }
 
+TEST(Special_, Ctor_InitializerList_SizeZero___Element_Ctor_Called_Times_Size___)
+{
+	size_t expected = 0;
+
+	std::initializer_list< myvec::CtorAssignCounter > init_list = {};
+	compiler_optimization_barrier(init_list);
+	{
+		myvec::CtorAssignCounter::reset();	
+		myvec::MyVector< myvec::CtorAssignCounter > mv {init_list};
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	
+		myvec::CtorAssignCounter::reset();
+		std::vector< myvec::CtorAssignCounter > v {init_list};
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	}
+
+	{
+		myvec::CtorAssignCounter::reset();	
+		const myvec::MyVector< myvec::CtorAssignCounter > cmv{init_list};
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	
+		myvec::CtorAssignCounter::reset();
+		const std::vector< myvec::CtorAssignCounter > cv{init_list};
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected);
+	}
+}
+
+
 // Ctor Initializer list Size Single //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_InitializerList_SizeSingle___) 
+TYPED_TEST(Regular_, Ctor_InitializerList_SizeSingle___) 
 {
 
 	std::initializer_list<TypeParam> init_list = { this->value(73) };
@@ -523,11 +1036,57 @@ TYPED_TEST(TT_1, Ctor_InitializerList_SizeSingle___)
 	TestSizeValVector(cv, init_list.begin(), init_list.end());
 }
 
+TEST(Special_, Ctor_InitializerList_SizeSingle___Element_Ctor_Called_Times_Size___)
+{
+	std::initializer_list< myvec::CtorAssignCounter > init_list = { myvec::CtorAssignCounter(37, 73) };
+	size_t expected_ttl = 1;
+	size_t expected_move = 0;
+	size_t expected_copy = 1;
+	compiler_optimization_barrier(init_list);
+
+	{
+		myvec::CtorAssignCounter::reset();	
+		myvec::MyVector< myvec::CtorAssignCounter > mv {init_list};
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::move_ctor_ + myvec::CtorAssignCounter::move_assign_, expected_move);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_ctor_ + myvec::CtorAssignCounter::copy_assign_, expected_copy);
+
+		myvec::CtorAssignCounter::reset();
+		std::vector< myvec::CtorAssignCounter > v {init_list};
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::move_ctor_ + myvec::CtorAssignCounter::move_assign_, expected_move);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_ctor_ + myvec::CtorAssignCounter::copy_assign_, expected_copy);
+	}
+
+	{
+		myvec::CtorAssignCounter::reset();	
+		const myvec::MyVector< myvec::CtorAssignCounter > cmv{init_list};
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::move_ctor_ + myvec::CtorAssignCounter::move_assign_, expected_move);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_ctor_ + myvec::CtorAssignCounter::copy_assign_, expected_copy);
+	
+		myvec::CtorAssignCounter::reset();
+		const std::vector< myvec::CtorAssignCounter > cv{init_list};
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::move_ctor_ + myvec::CtorAssignCounter::move_assign_, expected_move);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_ctor_ + myvec::CtorAssignCounter::copy_assign_, expected_copy);
+	}
+}
+
+
 // Ctor Initializer list Size 7 //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Ctor_InitializerList_Size7___) 
+TYPED_TEST(Regular_, Ctor_InitializerList_SizeMany___) 
 {
-	std::initializer_list<TypeParam> init_list = this->std_init_list_7();
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
 
 	compiler_optimization_barrier(init_list);
 	myvec::MyVector<TypeParam> mv {init_list};
@@ -546,9 +1105,53 @@ TYPED_TEST(TT_1, Ctor_InitializerList_Size7___)
 	TestSizeValVector(cv, init_list.begin(), init_list.end());
 }
 
+TEST(Special_, Ctor_InitializerList_SizeMany___Element_Ctor_Called_Times_Size___)
+{
+	std::initializer_list< myvec::CtorAssignCounter > init_list = 
+		{ 	myvec::CtorAssignCounter(1, 42),
+			myvec::CtorAssignCounter(2, 42),
+			myvec::CtorAssignCounter(3, 42),
+			myvec::CtorAssignCounter(4, 42),
+			myvec::CtorAssignCounter(5, 42)			
+		};
+
+	size_t expected_ttl = init_list.size();
+	size_t expected_move = 0;
+	size_t expected_copy = init_list.size();
+	compiler_optimization_barrier(init_list);
+
+	{
+		myvec::CtorAssignCounter::reset();		
+		myvec::MyVector< myvec::CtorAssignCounter > mv {init_list};
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::move_ctor_ + myvec::CtorAssignCounter::move_assign_, expected_move);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_ctor_ + myvec::CtorAssignCounter::copy_assign_, expected_copy);
+
+		myvec::CtorAssignCounter::reset();
+		std::vector< myvec::CtorAssignCounter > v {init_list};
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::move_ctor_ + myvec::CtorAssignCounter::move_assign_, expected_move);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_ctor_ + myvec::CtorAssignCounter::copy_assign_, expected_copy);
+	}
+
+	{
+		myvec::CtorAssignCounter::reset();	
+		const myvec::MyVector< myvec::CtorAssignCounter > cmv{init_list};
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::move_ctor_ + myvec::CtorAssignCounter::move_assign_, expected_move);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_ctor_ + myvec::CtorAssignCounter::copy_assign_, expected_copy);
+	
+		myvec::CtorAssignCounter::reset();
+		const std::vector< myvec::CtorAssignCounter > cv{init_list};
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::move_ctor_ + myvec::CtorAssignCounter::move_assign_, expected_move);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_ctor_ + myvec::CtorAssignCounter::copy_assign_, expected_copy);
+	}
+}
+
 // Assign Copy from Empty  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, AssignCopy_Empty___) 
+TYPED_TEST(Regular_, AssignCopy_Empty_to_Empty___) 
 {
 	const myvec::MyVector<TypeParam> msrc;
 	const std::vector<TypeParam> src;
@@ -565,9 +1168,87 @@ TYPED_TEST(TT_1, AssignCopy_Empty___)
 	TestSizeValVector(v);
 }
 
+
+TEST(Special_, AssignCopy_Empty_to_Empty___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 0;
+	size_t expected_ttl = size;
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+	
+		compiler_optimization_barrier(msrc, src);
+		myvec::MyVector< myvec::CtorAssignCounter > mv;
+		std::vector< myvec::CtorAssignCounter > v;
+		compiler_optimization_barrier(mv, v);
+
+		myvec::CtorAssignCounter::reset();	
+		mv = msrc;
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		
+		myvec::CtorAssignCounter::reset();
+		v = src;
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+	}
+}
+
+
+TYPED_TEST(Regular_, AssignCopy_Empty_to_Many___) 
+{
+	size_t init_size = 42;
+	TypeParam init_val = this->value(42);
+
+	const myvec::MyVector<TypeParam> msrc;
+	const std::vector<TypeParam> src;
+	compiler_optimization_barrier(msrc, src);
+
+	myvec::MyVector<TypeParam> mv(init_size, init_val);
+	std::vector<TypeParam> v(init_size, init_val);
+	compiler_optimization_barrier(mv, v);
+
+	mv = msrc;
+	v = src;
+
+	TestSizeValVector(mv);
+	TestSizeValVector(v);
+}
+
+TEST(Special_, AssignCopy_Empty_to_Many___Element_Ctor_Called_Times_Size___)
+{
+	size_t init_size = 42;
+
+	size_t size = 0;
+	size_t expected_ttl = size;
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+		compiler_optimization_barrier(msrc, src);
+		
+		myvec::CtorAssignCounter::reset();
+		myvec::MyVector< myvec::CtorAssignCounter > mv(init_size, {37, 73});
+		EXPECT_EQ(myvec::CtorAssignCounter::created_, init_size);
+
+		myvec::CtorAssignCounter::reset();
+		std::vector< myvec::CtorAssignCounter > v(init_size, {37, 73});
+		EXPECT_EQ(myvec::CtorAssignCounter::created_, init_size);
+
+		compiler_optimization_barrier(mv, v);
+
+		myvec::CtorAssignCounter::reset();	
+		mv = msrc;
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::dtor_, init_size);
+		
+		myvec::CtorAssignCounter::reset();
+		v = src;
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::dtor_, init_size);		
+	}
+}
+
 // Assign Copy from Single  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, AssignCopy_Single___) 
+TYPED_TEST(Regular_, AssignCopy_Single_to_Empty___) 
 {
 	TypeParam val = this->value(42);
 	const myvec::MyVector<TypeParam> msrc {val};
@@ -585,12 +1266,45 @@ TYPED_TEST(TT_1, AssignCopy_Single___)
 	TestSizeValVector(v, 1, val);
 }
 
+TEST(Special_, AssignCopy_Single_to_Empty___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 1;
+	size_t expected_ttl = size;
+	size_t expected_copy = size;
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+	
+		compiler_optimization_barrier(msrc, src);
+		myvec::MyVector< myvec::CtorAssignCounter > mv;
+		std::vector< myvec::CtorAssignCounter > v;
+		compiler_optimization_barrier(mv, v);
+
+		myvec::CtorAssignCounter::reset();	
+		mv = msrc;
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_assign_ + myvec::CtorAssignCounter::copy_ctor_, expected_copy);
+		
+		myvec::CtorAssignCounter::reset();
+		v = src;
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_assign_ + myvec::CtorAssignCounter::copy_ctor_, expected_copy);
+	}
+}
 
 // Assign Copy from Many  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, AssignCopy_Many___) 
+TYPED_TEST(Regular_, AssignCopy_Many_to_Empty___) 
 {
-	std::initializer_list<TypeParam> init_list = this->std_init_list_7();
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
 	const myvec::MyVector<TypeParam> msrc {init_list};
 	const std::vector<TypeParam> src {init_list};
 
@@ -607,11 +1321,110 @@ TYPED_TEST(TT_1, AssignCopy_Many___)
 	TestSizeValVector(v, init_list.begin(), init_list.end());
 }
 
+TEST(Special_, AssignCopy_Many_to_Empty___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 42;
+	size_t expected_ttl = size;
+	size_t expected_copy = size;
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+	
+		compiler_optimization_barrier(msrc, src);
+		myvec::MyVector< myvec::CtorAssignCounter > mv;
+		std::vector< myvec::CtorAssignCounter > v;
+		compiler_optimization_barrier(mv, v);
+
+		myvec::CtorAssignCounter::reset();	
+		mv = msrc;
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_assign_ + myvec::CtorAssignCounter::copy_ctor_, expected_copy);
+		
+		myvec::CtorAssignCounter::reset();
+		v = src;
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_assign_ + myvec::CtorAssignCounter::copy_ctor_, expected_copy);
+	}
+}
+
+TYPED_TEST(Regular_, AssignCopy_Many_to_Many___) 
+{
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
+	
+	const myvec::MyVector<TypeParam> msrc {init_list};
+	const std::vector<TypeParam> src {init_list};
+	compiler_optimization_barrier(msrc, src);
+
+	myvec::MyVector<TypeParam> mv(42, this->value(42));
+	std::vector<TypeParam> v(42, this->value(42));
+	compiler_optimization_barrier(mv, v);
+
+	mv = msrc;
+	v = src;
+	compiler_optimization_barrier(mv, v);
+
+	TestSizeValVector(mv, init_list.begin(), init_list.end());
+	TestSizeValVector(v, init_list.begin(), init_list.end());
+}
+
+TEST(Special_, AssignCopy_Many_to_Many___Element_Ctor_Called_Times_Size___)
+{
+	size_t init_size = 37;
+
+	size_t size = 42;
+	size_t expected_ttl = size;
+	size_t expected_copy = size;
+	
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+		compiler_optimization_barrier(msrc, src);
+	
+		myvec::CtorAssignCounter::reset();	
+		myvec::MyVector< myvec::CtorAssignCounter > mv(init_size, {37, 73});
+		EXPECT_EQ(myvec::CtorAssignCounter::created_, init_size);
+
+		myvec::CtorAssignCounter::reset();	
+		std::vector< myvec::CtorAssignCounter > v(init_size, {37, 73});
+		EXPECT_EQ(myvec::CtorAssignCounter::created_, init_size);		
+		
+		compiler_optimization_barrier(mv, v);
+
+		myvec::CtorAssignCounter::reset();	
+		mv = msrc;
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_assign_ + myvec::CtorAssignCounter::copy_ctor_, expected_copy);
+		EXPECT_EQ(myvec::CtorAssignCounter::dtor_, init_size);
+		
+		myvec::CtorAssignCounter::reset();
+		v = src;
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_assign_ + myvec::CtorAssignCounter::copy_ctor_, expected_copy);
+		EXPECT_EQ(myvec::CtorAssignCounter::dtor_, init_size);
+	}
+}
+
 // Assign Copy from Self  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, AssignCopy_Self___) 
+TYPED_TEST(Regular_, AssignCopy_Self___) 
 {
-	std::initializer_list<TypeParam> init_list = this->std_init_list_7();
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
 	
 	compiler_optimization_barrier(init_list);
 	myvec::MyVector<TypeParam> mv {init_list};
@@ -626,9 +1439,32 @@ TYPED_TEST(TT_1, AssignCopy_Self___)
 	TestSizeValVector(v, init_list.begin(), init_list.end());
 }
 
+TEST(Special_, AssignCopy_Self___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 42;
+	size_t expected_ttl = 0;
+	size_t expected_copy = 0;
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > mv(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > v(size, {37, 73});
+	
+		compiler_optimization_barrier(mv, v);
+
+		myvec::CtorAssignCounter::reset();	
+		mv = mv;
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_assign_ + myvec::CtorAssignCounter::copy_ctor_, expected_copy);
+		
+		myvec::CtorAssignCounter::reset();
+		v = v;
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+		EXPECT_EQ(myvec::CtorAssignCounter::copy_assign_ + myvec::CtorAssignCounter::copy_ctor_, expected_copy);
+	}
+}
+
 // Assign Move from Empty  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, AssignMove_Empty___) 
+TYPED_TEST(Regular_, AssignMove_Empty_to_Empty___) 
 {
 	const myvec::MyVector<TypeParam> msrc;
 	const std::vector<TypeParam> src;
@@ -646,9 +1482,33 @@ TYPED_TEST(TT_1, AssignMove_Empty___)
 	TestSizeValVector(v);
 }
 
+TEST(Special_, AssignMove_Empty_to_Empty___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 0;
+	size_t expected_ttl = 0;
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+	
+		compiler_optimization_barrier(msrc, src);
+		myvec::MyVector< myvec::CtorAssignCounter > mv;
+		std::vector< myvec::CtorAssignCounter > v;
+		compiler_optimization_barrier(mv, v);
+
+		myvec::CtorAssignCounter::reset();	
+		mv = std::move(msrc);
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+	
+		myvec::CtorAssignCounter::reset();
+		v = std::move(src);
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+	}
+}
+
+
 // Assign Move from Single  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, AssignMove_Single___) 
+TYPED_TEST(Regular_, AssignMove_Single_to_Empty___) 
 {
 	TypeParam val = this->value(42);
 	const myvec::MyVector<TypeParam> msrc {val};
@@ -668,11 +1528,42 @@ TYPED_TEST(TT_1, AssignMove_Single___)
 }
 
 
+TEST(Special_, AssignMove_Single_to_Empty___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 1;
+	size_t expected_ttl = 0;
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+	
+		compiler_optimization_barrier(msrc, src);
+		myvec::MyVector< myvec::CtorAssignCounter > mv;
+		std::vector< myvec::CtorAssignCounter > v;
+		compiler_optimization_barrier(mv, v);
+
+		myvec::CtorAssignCounter::reset();	
+		mv = std::move(msrc);
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+	
+		myvec::CtorAssignCounter::reset();
+		v = std::move(src);
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+	}
+}
+
 // Assign Move from Many  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, AssignMove_Many___) 
+TYPED_TEST(Regular_, AssignMove_Many_to_Empty___) 
 {
-	std::initializer_list<TypeParam> init_list = this->std_init_list_7();
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
 	const myvec::MyVector<TypeParam> msrc {init_list};
 	const std::vector<TypeParam> src {init_list};
 
@@ -689,14 +1580,106 @@ TYPED_TEST(TT_1, AssignMove_Many___)
 	TestSizeValVector(v, init_list.begin(), init_list.end());
 }
 
+TEST(Special_, AssignMove_Many_to_Empty___Element_Ctor_Called_Times_Size___)
+{
+	size_t size = 42;
+	size_t expected_ttl = 0;
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+	
+		compiler_optimization_barrier(msrc, src);
+		myvec::MyVector< myvec::CtorAssignCounter > mv;
+		std::vector< myvec::CtorAssignCounter > v;
+		compiler_optimization_barrier(mv, v);
+
+		myvec::CtorAssignCounter::reset();	
+		mv = std::move(msrc);
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+	
+		myvec::CtorAssignCounter::reset();
+		v = std::move(src);
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+	}
+}
+
+TYPED_TEST(Regular_, AssignMove_Many_to_Many___) 
+{
+	
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
+	const myvec::MyVector<TypeParam> msrc {init_list};
+	const std::vector<TypeParam> src {init_list};
+	compiler_optimization_barrier(msrc, src);
+	
+	size_t size = 42;
+	myvec::MyVector<TypeParam> mv(size, this->value(42));
+	std::vector<TypeParam> v(size, this->value(42));
+	compiler_optimization_barrier(mv, v);
+
+	mv = std::move(msrc);
+	v = std::move(src);
+	compiler_optimization_barrier(mv, v);
+
+	TestSizeValVector(mv, init_list.begin(), init_list.end());
+	TestSizeValVector(v, init_list.begin(), init_list.end());
+}
+
+TEST(Special_, AssignMove_Many_to_Many___Element_Ctor_Called_Times_Size___)
+{
+	size_t init_size = 37;
+
+	size_t size = 42;
+	size_t expected_ttl = 0;
+	{
+		myvec::MyVector< myvec::CtorAssignCounter > msrc(size, {37, 73});
+		std::vector< myvec::CtorAssignCounter > src(size, {37, 73});
+		compiler_optimization_barrier(msrc, src);
+	
+		myvec::CtorAssignCounter::reset();
+		myvec::MyVector< myvec::CtorAssignCounter > mv(init_size, {37, 73});
+		EXPECT_EQ(myvec::CtorAssignCounter::created_, init_size);
+
+		myvec::CtorAssignCounter::reset();
+		std::vector< myvec::CtorAssignCounter > v(init_size, {37, 73});
+		EXPECT_EQ(myvec::CtorAssignCounter::created_, init_size);
+
+		compiler_optimization_barrier(mv, v);
+
+		myvec::CtorAssignCounter::reset();	
+		mv = std::move(msrc);
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+	
+		myvec::CtorAssignCounter::reset();
+		v = std::move(src);
+		EXPECT_EQ(myvec::CtorAssignCounter::total_, expected_ttl);
+	}
+}	
+
+
 // Assign Move from Self  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, AssignMove_Self___) 
+TYPED_TEST(Regular_, AssignMove_Self___) 
 {
 	//	standard doesn't require self move assignment to work 'safely'
 	//	moved-from object is valid, but unspecified
 
-	std::initializer_list<TypeParam> init_list = this->std_init_list_7();
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
 	myvec::MyVector<TypeParam> mv {init_list};
 	compiler_optimization_barrier(init_list);
 
@@ -714,7 +1697,7 @@ TYPED_TEST(TT_1, AssignMove_Self___)
 
 // Begin End Return  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Get_Iter_ReturnType___) 
+TYPED_TEST(Regular_, Iter_ReturnType___) 
 {
 	using mv_iter_type 					= myvec::MyVector<TypeParam>::iterator;
 	using mv_const_iter_type			= myvec::MyVector<TypeParam>::const_iterator;
@@ -726,7 +1709,15 @@ TYPED_TEST(TT_1, Get_Iter_ReturnType___)
 	EXPECT_TRUE(std::random_access_iterator<mv_reverse_iter_type>);
 	EXPECT_TRUE(std::random_access_iterator<mv_const_reverse_iter_type>);
 
-	std::initializer_list<TypeParam> init_list = this->std_init_list_7();
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
 
 	myvec::MyVector<TypeParam> mv {init_list};	
 	const myvec::MyVector<TypeParam> cmv {init_list};	
@@ -790,12 +1781,20 @@ TYPED_TEST(TT_1, Get_Iter_ReturnType___)
 
 // Iterator Copy Move //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Iterator___) 
+TYPED_TEST(Regular_, Iterator___) 
 {
 	using mv_iter_type = myvec::MyVector<TypeParam>::iterator;
 	using v_iter_type = std::vector<TypeParam>::iterator;
 
-	std::initializer_list<TypeParam> init_list = this->std_init_list_7();
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
 	myvec::MyVector<TypeParam> mv {init_list};	
 	std::vector<TypeParam> v {init_list};
 	
@@ -874,12 +1873,20 @@ TYPED_TEST(TT_1, Iterator___)
 
 // Const_Iterator  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Const_Iterator___) 
+TYPED_TEST(Regular_, Const_Iterator___) 
 {
 	using mv_iter_type = myvec::MyVector<TypeParam>::const_iterator;
 	using v_iter_type = std::vector<TypeParam>::const_iterator;
 
-	std::initializer_list<TypeParam> init_list = this->std_init_list_7();
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
 	const myvec::MyVector<TypeParam> mv {init_list};	
 	const std::vector<TypeParam> v {init_list};
 	
@@ -907,12 +1914,20 @@ TYPED_TEST(TT_1, Const_Iterator___)
 
 // Reverse_Iterator  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Reverse_Iterator___) 
+TYPED_TEST(Regular_, Reverse_Iterator___) 
 {
 	using mv_iter_type = myvec::MyVector<TypeParam>::reverse_iterator;
 	using v_iter_type = std::vector<TypeParam>::reverse_iterator;
 
-	std::initializer_list<TypeParam> init_list = this->std_init_list_7();
+	std::initializer_list<TypeParam> init_list	{	this->value(1),
+													this->value(2),
+													this->value(3),
+													this->value(4),
+													this->value(5),
+													this->value(6),
+													this->value(7),
+													this->value(8)
+												};
 	myvec::MyVector<TypeParam> mv {init_list};	
 	std::vector<TypeParam> v {init_list};
 	
@@ -932,12 +1947,21 @@ TYPED_TEST(TT_1, Reverse_Iterator___)
 
 // Const_Reverse_Iterator  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Const_Reverse_Iterator___) 
+TYPED_TEST(Regular_, Const_Reverse_Iterator___) 
 {
 	using mv_iter_type = myvec::MyVector<TypeParam>::const_reverse_iterator;
 	using v_iter_type = std::vector<TypeParam>::const_reverse_iterator;
 
-	std::initializer_list<TypeParam> init_list = this->std_init_list_7();
+	std::initializer_list<TypeParam> init_list {	this->value(1), 
+													this->value(2), 
+													this->value(3), 
+													this->value(4), 
+													this->value(5), 
+													this->value(6), 
+													this->value(7), 
+													this->value(8)
+												};
+
 	myvec::MyVector<TypeParam> mv {init_list};	
 	std::vector<TypeParam> v {init_list};
 	
@@ -962,55 +1986,272 @@ TYPED_TEST(TT_1, Const_Reverse_Iterator___)
 
 // Reserve  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Reserve___) 
+TYPED_TEST(Regular_, Reserve___) 
 {
 	myvec::MyVector<TypeParam> mv_empty;
+	TestReserve(mv_empty);
+
+	size_t size = 1;
+	myvec::MyVector<TypeParam> mv_size_single(size);
+	TestReserve(mv_size_single);
+
+	size = 42;
+	myvec::MyVector<TypeParam> mv_size_many(size);
+	TestReserve(mv_size_many);
+}
+
+TEST(Special_, Reallocation___Element_NoMove___)
+{
+	using TypeParam = myvec::NoMove;
+
+	myvec::MyVector<TypeParam> mv_empty;
 	TestSizeValVector(mv_empty);
-	size_t cap = 42;
-	mv_empty.reserve(cap);
-	EXPECT_GE(mv_empty.capacity(), cap);
+	TestReserve(mv_empty);
 
 	size_t size = 1;
 	myvec::MyVector<TypeParam> mv_size_single(size);
 	TestSizeValVector(mv_size_single, size);
-	size_t prev_cap = mv_size_single.capacity();
-	cap = prev_cap;
-	mv_size_single.reserve(cap);
-	EXPECT_EQ(mv_size_single.capacity(), prev_cap);
-	++cap;
-	mv_size_single.reserve(cap);
-	EXPECT_GE(mv_size_single.capacity(), cap);
+	TestReserve(mv_size_single);
 
 	size = 42;
 	myvec::MyVector<TypeParam> mv_size_many(size);
 	TestSizeValVector(mv_size_many, size);
-	prev_cap = mv_size_many.capacity();
-	cap = prev_cap;
-	mv_size_many.reserve(cap);
-	EXPECT_EQ(mv_size_many.capacity(), prev_cap);
-	++cap;
-	mv_size_many.reserve(cap);
-	EXPECT_GE(mv_size_many.capacity(), cap);
+	TestReserve(mv_size_single);
+}
 
+TEST(Special_, Reallocation___Element_NoCopy___)
+{
+	using TypeParam = myvec::NoCopy;
+
+	myvec::MyVector<TypeParam> mv_empty;
+	TestSizeValVector(mv_empty);
+	TestReserve(mv_empty);
+	
+
+	size_t size = 1;
+	myvec::MyVector<TypeParam> mv_size_single(size);
+	TestSizeValVector(mv_size_single, size);
+	TestReserve(mv_size_single);
+
+	size = 42;
+	myvec::MyVector<TypeParam> mv_size_many(size);
+	TestSizeValVector(mv_size_many, size);
+	TestReserve(mv_size_single);
+}
+
+TEST(Special_, Reallocation___Element_CtorAssignCounter___)
+{
+	using T = myvec::CtorAssignCounter;
+
+	size_t size = 42;
+	int start_val = 1;
+	myvec::MyVector<T> mv = make_my_vector_size<T>(size, start_val);
+	std::vector<T> v = make_std_vector_size<T>(size, start_val);
+	
+	size_t expected_move = size;
+	size_t expected_ttl = expected_move;
+	{
+		T* prev_data = v.data();
+		T::reset();
+		mv.reserve(mv.capacity() + 42);
+		for (size_t i = 0; prev_data == mv.data() && i < 100; ++i)
+			mv.reserve(mv.capacity() + 42);
+		EXPECT_NE(mv.data(), prev_data) << "Reallocations happend to the same memory 100 times in a row";
+		EXPECT_EQ(T::move_assign_ + T::move_ctor_, expected_move);
+		EXPECT_EQ(T::total_, expected_ttl);
+	}
+
+	{
+		auto prev_data = v.data();
+		T::reset();
+		mv.reserve(mv.capacity() + 42);
+		for (size_t i = 0; prev_data == mv.data() && i < 100; ++i)
+			mv.reserve(mv.capacity() + 42);
+		EXPECT_NE(mv.data(), prev_data) << "Reallocations happend to the same memory 100 times in a row";
+		EXPECT_EQ(T::move_assign_ + T::move_ctor_, expected_move);
+		EXPECT_EQ(T::total_, expected_ttl);
+	}
+
+}
+
+TEST(Special_, Reserve___Exception_Safety___ElementMoveThrow___) 
+{
+	myvec::StructThrow::copies_moves_before_throw_ = 7;
+	using T = myvec::StructThrow; // count move/copy, throws at 7th move/copy
+
+
+	size_t size = 5;
+	myvec::MyVector<T> mv(size, T()); // 5 copies made 
+	ASSERT_EQ(mv.capacity(), size); // for push_back reallocation is needed
+	
+	auto prev_data = mv.data();
+	auto prev_cap = mv.capacity();
+	auto prev_size = mv.size();
+
+	// each object of StructThrow has its unique key, 
+	//		which is not copyable or moveable
+	//		can be read by 'key()' method
+	// copy all 'keys' into std::vector
+	std::vector<int> prev_vals(prev_size);
+	auto it_mv = mv.begin();
+	std::generate(prev_vals.begin(), prev_vals.end(), [&it_mv]()
+													{ 
+														int key = (*it_mv).key();
+														++it_mv;
+														return key;
+													});
+
+	// at reallocation: 6th move/copy successful, 7th throws
+	ASSERT_THROW( mv.reserve(prev_cap + 42), myvec::StructThrow::Exception ); 
+
+	// check exception guaranty: vector remains valid on reallocation fail
+	//		check data ptr, capacity, size
+	EXPECT_EQ(mv.data(), prev_data);
+	EXPECT_EQ(mv.capacity(), prev_cap);
+	EXPECT_EQ(mv.size(), prev_size);
+	// 		check that all 'keys' remain the same ('keys' are not copyable or moveable)
+	auto it_v = prev_vals.begin();
+	std::for_each(mv.begin(), mv.end(), [&it_v](auto&& el)
+										{
+											EXPECT_EQ(el.key(), *it_v);
+											++it_v;
+										});
+}
+
+TEST(Special_, Reserve___Exception_Safety___ReallocationThrow___)
+{
+	size_t size = 42;
+	myvec::AllocThrow<int> throwing_alloc;
+	myvec::AllocThrow<int>::allocs_before_throw_ = 2; // allows to create a vector and its copy
+	
+	try
+	{
+		// allocs_before_throw = 2;
+		myvec::MyVector<int, myvec::AllocThrow<int> > mv(size, throwing_alloc);
+		// allocs_before_throw = 1;
+
+		std::iota(mv.begin(), mv.end(), 1);
+		ASSERT_EQ(mv.capacity(), size);
+		
+		auto prev_data = mv.data();
+		auto prev_cap = mv.capacity();
+		auto prev_size = mv.size();
+		auto copy(mv); 
+		// allocs_before_throw = 0;
+	
+		ASSERT_THROW( mv.reserve(prev_cap + 42), std::bad_alloc); // AllocThrow will throw at reallocation
+	
+		EXPECT_EQ(mv.data(), prev_data);
+		EXPECT_EQ(mv.capacity(), prev_cap);
+		EXPECT_EQ(mv.size(), prev_size);
+		EXPECT_TRUE(std::equal(mv.begin(), mv.end(), copy.begin()));
+	}
+	catch(const std::bad_alloc& ba)
+	{
+		FAIL() << "\n\tCaught bad_alloc at init vec\n\n";
+	}
+	
 }
 
 // Push_back  //-----------------------------------------------------------------
 
-TYPED_TEST(TT_1, Push_back___) 
+TYPED_TEST(Regular_, Push_back___) 
 {
-	TypeParam val_init_vector = this->value(37);
-	TypeParam val_push_back = this->value(42);
+	int val_start = 0;
+	TypeParam val_push_back = this->value(val_start);
+	
+	++val_start; // =1
+	TypeParam val_init = this->value(val_start);
+
 
 	size_t size = 0;
-	myvec::MyVector<TypeParam> mv_empty(size, val_init_vector);
-	TestPushBack(mv_empty, val_init_vector, val_push_back);
+	myvec::MyVector<TypeParam> mv_empty(size, val_init);
+	TestPushBack(mv_empty, val_start, val_push_back);
+	mv_empty.reserve(mv_empty.capacity() + 42);
+	TestPushBack(mv_empty, val_start, val_push_back);	
 
 	size = 1;
-	myvec::MyVector<TypeParam> mv_size_single(size, val_init_vector);
-	TestPushBack(mv_size_single, val_init_vector, val_push_back);
+	myvec::MyVector<TypeParam> mv_size_single(size, val_init);
+	TestPushBack(mv_size_single, val_start, val_push_back);
+	mv_size_single.reserve(mv_size_single.capacity() + 42);
+	TestPushBack(mv_size_single, val_start, val_push_back);
 
 	size = 42;
-	myvec::MyVector<TypeParam> mv_size_many(size, val_init_vector);
-	TestPushBack(mv_size_many, val_init_vector, val_push_back);
+	myvec::MyVector<TypeParam> mv_size_many(this->make_vector_size(size, val_start));
+	val_start += size; // = 43
+	TestPushBack(mv_size_many, val_start, val_push_back);
+	mv_size_many.reserve(mv_size_many.capacity() + 42);
+	TestPushBack(mv_size_many, val_start, val_push_back);
 
+}
+
+TEST(Special_, Push_back___ExceptionSafety___ElementMoveThrow___) 
+{
+	myvec::StructThrow::copies_moves_before_throw_ = 7;
+	using T = myvec::StructThrow; 
+
+	size_t size = 5;
+	myvec::MyVector<T> mv(size, T()); 
+	ASSERT_EQ(mv.capacity(), size); 
+	
+	auto prev_data = mv.data();
+	auto prev_cap = mv.capacity();
+	auto prev_size = mv.size();
+
+	std::vector<int> prev_vals(prev_size);
+	auto it_mv = mv.begin();
+	std::generate(prev_vals.begin(), prev_vals.end(), [&it_mv]()
+													{ 
+														int key = (*it_mv).key();
+														++it_mv;
+														return key;
+													});
+
+	ASSERT_THROW( mv.push_back(T()), myvec::StructThrow::Exception );
+	
+	EXPECT_EQ(mv.data(), prev_data);
+	EXPECT_EQ(mv.capacity(), prev_cap);
+	EXPECT_EQ(mv.size(), prev_size);
+	auto it_v = prev_vals.begin();
+	std::for_each(mv.begin(), mv.end(), [&it_v](auto&& el)
+										{
+											EXPECT_EQ(el.key(), *it_v);
+											++it_v;
+										});
+}
+
+
+TEST(Special_, Push_back___Exception_Safety___ReallocationThrow___)
+{
+	size_t size = 42;
+	myvec::AllocThrow<int> throwing_alloc;
+	myvec::AllocThrow<int>::allocs_before_throw_ = 2; // allows to create a vector and its copy
+	
+	try
+	{
+		// allocs_before_throw = 2;
+		myvec::MyVector<int, myvec::AllocThrow<int> > mv(size, throwing_alloc);
+		// allocs_before_throw = 1;
+
+		std::iota(mv.begin(), mv.end(), 1);
+		ASSERT_EQ(mv.capacity(), size); // push_back needs reallocation
+		
+		auto prev_data = mv.data();
+		auto prev_cap = mv.capacity();
+		auto prev_size = mv.size();
+		auto copy(mv); 
+		// allocs_before_throw = 0;
+	
+		ASSERT_THROW( mv.push_back(73), std::bad_alloc); // AllocThrow will throw at reallocation
+	
+		EXPECT_EQ(mv.data(), prev_data);
+		EXPECT_EQ(mv.capacity(), prev_cap);
+		EXPECT_EQ(mv.size(), prev_size);
+		EXPECT_TRUE(std::equal(mv.begin(), mv.end(), copy.begin()));
+	}
+	catch(const std::bad_alloc& ba)
+	{
+		FAIL() << "\n\tCaught bad_alloc at init vec\n\n";
+	}
+	
 }

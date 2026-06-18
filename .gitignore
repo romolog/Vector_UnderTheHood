@@ -1,12 +1,6 @@
 .gitignore
 
-Allocator.hpp
-MyVectorTest_README.md
-MyVectorTestClasses.hpp
-
 build/
 snapshots/
 tools/
 
-main.cpp
-myvec

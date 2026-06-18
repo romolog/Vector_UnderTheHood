@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MyVector.hpp"
+#include "MyVectorTestClasses.hpp"
 
 #include <array>
 #include <concepts>
@@ -13,10 +14,10 @@
 #include <utility>
 
 template<typename T>
-class TT_1 : public ::testing::Test
+class Regular_ : public ::testing::Test
 {
 	protected:
-		constexpr T value(int n) 
+		constexpr T value(const int n) 
 		{
 			if constexpr (std::is_same_v<T, std::string>)
 			{
@@ -26,6 +27,30 @@ class TT_1 : public ::testing::Test
 			}
 			else
 				return T(n);
+		}
+
+		myvec::MyVector<T> make_vector_size(size_t size, int start_val)
+		{
+
+			myvec::MyVector<int> v(size);
+			std::iota(v.begin(), v.end(), start_val);
+			
+			if constexpr (std::is_same_v<T, int>)
+				return v;
+			else if constexpr (std::is_same_v<T, std::string>)
+			{
+				myvec::MyVector<std::string> vs;
+				auto it = v.begin();
+				std::generate(vs.begin(), vs.end(), [&it]() { return std::to_string(*it++); } );
+				return vs;			
+			}
+			else
+			{
+				myvec::MyVector<T> vt(size);
+				auto it = v.begin();
+				std::generate(vt.begin(), vt.end(), [&it]() { return T(*it++); } );
+				return vt;
+			}
 		}
 
 		constexpr std::vector<T> std_vector_size42()
@@ -46,36 +71,4 @@ class TT_1 : public ::testing::Test
 				return vt;
 			}
 		}
-
-		constexpr static std::initializer_list<int> il_3int = {37, 42, 73};
-		constexpr static std::initializer_list<int> il_7int = {1, 2, 3, 4, 5, 6, 7};
-
-		constexpr static std::initializer_list<std::string> il_3str = {"a", "ab", "abc"};
-		constexpr static std::initializer_list<std::string> il_7str = {"Hello", "World", "!", "hello_world", "Hello World !", "Hi", "Good day"};
-
-		template <typename U>
-		constexpr static std::initializer_list<U> il_3T = { U(1), U(2), U(3)};
-
-		template <typename U>
-		constexpr static std::initializer_list<U> il_7T = { U(1), U(2), U(3), U(4), U(5), U(6), U(7)};
-
-		constexpr std::initializer_list<T> std_init_list_3()
-		{
-			if constexpr (std::is_same_v<T, int>)
-				return il_3int;
-			else if constexpr (std::is_same_v<T, std::string>)
-				return il_3str;
-			else
-				return il_3T<T>;
-		}
-
-		constexpr std::initializer_list<T> std_init_list_7()
-		{
-			if constexpr (std::is_same_v<T, int>)
-				return il_7int;
-			else if constexpr (std::is_same_v<T, std::string>)
-				return il_7str;
-			else
-				return il_7T<T>;
-		}
-};
+}; 

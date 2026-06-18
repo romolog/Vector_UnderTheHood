@@ -46,9 +46,19 @@ add_executable(myvec_tests MyVector.hpp MyVectorTest.cpp)
 target_include_directories(myvec_tests PUBLIC ${CMAKE_SOURCE_DIR})
 
 target_compile_options(myvec_tests PRIVATE
+	$<$<CXX_COMPILER_ID:Clang>:
+	-g -O1 -fno-omit-frame-pointer
+	-fsanitize=address,undefined,leak
+	>
 	$<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic -Wdeprecated>
 	$<$<CXX_COMPILER_ID:MSVC>:/W4>
 )
+
+target_link_options(myvec_tests PRIVATE
+	$<$<CXX_COMPILER_ID:Clang>: -fsanitize=address,undefined,leak >
+)
+
+
 target_link_libraries(myvec_tests PRIVATE
     GTest::GTest
 	GTest::GMock
