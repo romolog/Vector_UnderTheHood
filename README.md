@@ -20,8 +20,8 @@ Implemented features:
 					
 * GTests:					More than 100 unit tests cover the implementation's behavior.
 
-* No Leaks or errors:		No memory leaks or errors. Compiled with ASan, UBSan, 
-							and LSan sanitizers. Corner cases verified by Valgrind.
+* No Leaks or errors:		Compiled with ASan, UBSan, and LSan sanitizers. 
+							Corner cases verified by Valgrind.
 
 * No AI-generated code:		All code is written manually, while being "C++"-conscious 
 							and with caffeine levels high.
