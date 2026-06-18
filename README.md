@@ -5,7 +5,7 @@ I implemented a container that provides a limited subset of std::vector function
 
 The project showcases my current skills in C++, including templates, allocators, iterators, and unit testing with Google Test.
 
-Although I have written more than 100 tests, I still have many ideas and additional cases to add. However, my goal was to create a limited, academic implementation of std::vector, and at this point I consider it achieved. With some regret, I am stopping here and moving on to the next project.
+Although I have implemented quite a few std::vector features and written more than 100 tests, I still have many additional functionalities and test cases to add. Still, my goal was to create a limited, academic implementation of std::vector, and at this point I consider it achieved. With some regret, I am stopping here and moving on to the next project.
 
 -------
 
