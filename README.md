@@ -11,7 +11,8 @@ Although I have implemented quite a few std::vector features and written more th
 
 Implemented features:
 <pre>
-* Exception safety:			RAII storage ensures that destructors are called, even when exceptions occur.
+* Exception safety:			RAII storage ensures that destructors are called, 
+							even when exceptions occur.
 
 * Iterators:				Custom iterators are implemented.
 
@@ -19,8 +20,8 @@ Implemented features:
 					
 * GTests:					More than 100 unit tests cover the implementation's behavior.
 
-* No Leaks or errors:		No memory leaks or errors. Compiled with ASan, UBSan, and LSan sanitizers. 
-							Corner cases verified by Valgrind.
+* No Leaks or errors:		No memory leaks or errors. Compiled with ASan, UBSan, 
+							and LSan sanitizers. Corner cases verified by Valgrind.
 
 * No AI-generated code:		All code is written manually, while being "C++"-conscious 
 							and with caffeine levels high.
