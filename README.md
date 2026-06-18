@@ -43,7 +43,7 @@ Implemented features:
 ### Build & Run
 
 ```bash
-git clone https://github.com/romolog/CPP__algorithm__ford-johnson_2025 my_vector;
+git clone https://github.com/romolog/Vector_UnderTheHood.git my_vector;
 cd my_vector;
 ./test.sh;
 
