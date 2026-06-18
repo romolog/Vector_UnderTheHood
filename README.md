@@ -1,4 +1,4 @@
-# Vector: implementation of std::vector
+# Implementation of std::vector
 
 
 I implemented a container that provides a limited subset of std::vector functionality.
